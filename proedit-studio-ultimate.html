@@ -1025,6 +1025,7 @@ const folderInput = document.getElementById('folderInput');
 let rafPending = false;
 // scheduleRender always calls the live window._activeRender, which init() sets to renderFrameWithHSL
 function scheduleRender() {
+  if (S.activeIdx >= 0 && S.photos[S.activeIdx]) S.photos[S.activeIdx].thumb = null;
   if (!rafPending) {
     rafPending = true;
     requestAnimationFrame(() => {
@@ -1143,7 +1144,8 @@ function loadImageFile(file) {
         filterStrength: 100,
         history: [],
         histIdx: -1,
-        processed: false
+        processed: false,
+        thumb: null
       };
       S.photos.push(entry);
       addFilmstripThumb(entry, S.photos.length - 1);
@@ -1222,11 +1224,12 @@ function addFilmstripThumb(entry, idx) {
 }
 
 function selectPhoto(idx) {
-  // Save current photo's full state before switching
+  // Save current photo's full state before switching; invalidate cached thumbnail
   if (S.activeIdx >= 0 && S.photos[S.activeIdx]) {
     S.photos[S.activeIdx].adj    = {...S.adj};
     S.photos[S.activeIdx].filter = S.filter;
     S.photos[S.activeIdx].hslAdj = JSON.parse(JSON.stringify(S.hslAdj || {}));
+    S.photos[S.activeIdx].thumb  = null;
   }
   S.activeIdx = idx;
   const photo = S.photos[idx];
@@ -1251,8 +1254,7 @@ function selectPhoto(idx) {
 
   // Update sliders to match photo's adj
   syncSlidersToState();
-  // Rebuild HSL panel so sliders reflect this photo's stored HSL values
-  buildHSLPanel();
+  syncHSLSliders();
 
   // Sync active quick filter button
   document.querySelectorAll('.qflt-btn').forEach(b => b.classList.remove('active'));
@@ -1841,14 +1843,21 @@ function cancelCrop() {
 /* ═══════════════════════════════════════════════════════════
    ROTATE & FLIP
 ═══════════════════════════════════════════════════════════ */
+/* putImageData ignores canvas transforms — this helper draws origData into a
+   plain canvas so subsequent drawImage calls respect transforms correctly. */
+function origDataToCanvas() {
+  const {width:w, height:h} = S.origData;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').putImageData(S.origData, 0, 0);
+  return c;
+}
+
 function rotate90() {
   if (!S.origData) return;
   saveHistory();
   const {width:w, height:h} = S.origData;
-  // putImageData ignores transforms — draw origData into a source canvas first
-  const src = document.createElement('canvas');
-  src.width = w; src.height = h;
-  src.getContext('2d').putImageData(S.origData, 0, 0);
+  const src = origDataToCanvas();
   const tc = document.createElement('canvas');
   tc.width = h; tc.height = w;
   const tx = tc.getContext('2d');
@@ -1867,9 +1876,7 @@ function rotate180() {
   if (!S.origData) return;
   saveHistory();
   const {width:w, height:h} = S.origData;
-  const src = document.createElement('canvas');
-  src.width = w; src.height = h;
-  src.getContext('2d').putImageData(S.origData, 0, 0);
+  const src = origDataToCanvas();
   const tc = document.createElement('canvas');
   tc.width = w; tc.height = h;
   const tx = tc.getContext('2d');
@@ -1887,9 +1894,7 @@ function flipH() {
   if (!S.origData) return;
   saveHistory();
   const {width:w, height:h} = S.origData;
-  const src = document.createElement('canvas');
-  src.width = w; src.height = h;
-  src.getContext('2d').putImageData(S.origData, 0, 0);
+  const src = origDataToCanvas();
   const tc = document.createElement('canvas');
   tc.width = w; tc.height = h;
   const tx = tc.getContext('2d');
@@ -1907,9 +1912,7 @@ function flipV() {
   if (!S.origData) return;
   saveHistory();
   const {width:w, height:h} = S.origData;
-  const src = document.createElement('canvas');
-  src.width = w; src.height = h;
-  src.getContext('2d').putImageData(S.origData, 0, 0);
+  const src = origDataToCanvas();
   const tc = document.createElement('canvas');
   tc.width = w; tc.height = h;
   const tx = tc.getContext('2d');
@@ -2192,11 +2195,9 @@ function buildFilterPanel() {
 function applyFilter(name) {
   if (!S.origData) { toast('Load an image first'); return; }
   S.filter = name;
-  document.querySelectorAll('.flt-item').forEach(i=>i.classList.remove('active'));
+  document.querySelectorAll('.flt-item, .qflt-btn').forEach(i=>i.classList.remove('active'));
   const el = document.getElementById('flt-'+name);
   if (el) el.classList.add('active');
-  // Sync quick filter sidebar highlight
-  document.querySelectorAll('.qflt-btn').forEach(b=>b.classList.remove('active'));
   const qb = document.getElementById('qflt-'+name);
   if (qb) qb.classList.add('active');
   scheduleRender();
@@ -2367,6 +2368,29 @@ function buildHSLPanel() {
       <div class="ctrl"><div class="ctrl-label"><span>Luminance</span><span class="ctrl-val" id="hsl${key}L">${adj.lum}</span></div>
         <input type="range" min="-100" max="100" value="${adj.lum}" oninput="onHSL('${key}','lum',this)"></div>`;
     c.appendChild(sec);
+  });
+}
+
+/* Update HSL slider values without rebuilding the panel DOM */
+function syncHSLSliders() {
+  S.hslAdj = S.hslAdj || {};
+  HSL_CHANNELS.forEach(ch => {
+    const key = ch.name.toLowerCase();
+    if (!S.hslAdj[key]) S.hslAdj[key] = {hue:0, sat:0, lum:0};
+    const adj = S.hslAdj[key];
+    const vH = document.getElementById('hsl'+key+'H');
+    const vS = document.getElementById('hsl'+key+'S');
+    const vL = document.getElementById('hsl'+key+'L');
+    if (vH) vH.textContent = adj.hue;
+    if (vS) vS.textContent = adj.sat;
+    if (vL) vL.textContent = adj.lum;
+    const sec = vH?.closest('.p-sec');
+    if (sec) {
+      const ranges = sec.querySelectorAll('input[type=range]');
+      if (ranges[0]) ranges[0].value = adj.hue;
+      if (ranges[1]) ranges[1].value = adj.sat;
+      if (ranges[2]) ranges[2].value = adj.lum;
+    }
   });
 }
 
@@ -3146,98 +3170,102 @@ async function processStyleTransfer() {
 function generateAlbum() {
   const layout = document.getElementById('albumLayout').value;
   closeModal('modalAlbum');
-  // Map modal layout names to album overlay grid names
-  const layoutMap = {classic:'classic',story:'story',cinematic:'cinematic',magazine:'magazine',wedding:'wedding'};
-  document.getElementById('albumViewLayout').value = layoutMap[layout] || 'classic';
+  document.getElementById('albumViewLayout').value = layout || 'classic';
   openAlbum();
 }
 
 function showAlbum() {
-  if (S.photos.length === 0) { toast('Load some photos first'); return; }
+  if (!S.photos.length) { toast('Load some photos first'); return; }
   openAlbum();
 }
 
 function openAlbum() {
-  if (S.photos.length === 0) { toast('Load some photos first'); return; }
-  document.getElementById('albumOverlay').classList.add('on');
+  if (!S.photos.length) { toast('Load some photos first'); return; }
+  openModal('albumOverlay');
   renderAlbumGrid();
 }
 
-function closeAlbum() {
-  document.getElementById('albumOverlay').classList.remove('on');
+function closeAlbum() { closeModal('albumOverlay'); }
+
+/* Generate a downscaled (≤400px wide) thumbnail for a photo with its edits
+   applied. Works on a small canvas so it's ~100× faster than full-res. */
+function generatePhotoThumb(photo) {
+  const {width:fw, height:fh} = photo.origData;
+  const scale = Math.min(1, 400 / Math.max(fw, 1));
+  const tw = Math.max(1, Math.round(fw * scale));
+  const th = Math.max(1, Math.round(fh * scale));
+
+  // Downscale first — much faster to process small pixels
+  const srcC = document.createElement('canvas');
+  srcC.width = fw; srcC.height = fh;
+  srcC.getContext('2d').putImageData(photo.origData, 0, 0);
+  const downC = document.createElement('canvas');
+  downC.width = tw; downC.height = th;
+  const downCtx = downC.getContext('2d', {willReadFrequently:true});
+  downCtx.drawImage(srcC, 0, 0, tw, th);
+
+  const buf = new Uint8ClampedArray(downCtx.getImageData(0, 0, tw, th).data);
+
+  const savedAdj = S.adj, savedFilter = S.filter, savedHSL = S.hslAdj;
+  S.adj    = {...(photo.adj    || defaultAdj())};
+  S.filter = photo.filter || null;
+  S.hslAdj = photo.hslAdj ? JSON.parse(JSON.stringify(photo.hslAdj)) : {};
+  applyTone(buf, tw, th);
+  applyColor(buf, tw, th);
+  if (S.filter) applyFilterLUT(buf, tw, th);
+  applyHSLPass(buf, tw, th);
+  S.adj = savedAdj; S.filter = savedFilter; S.hslAdj = savedHSL;
+
+  downCtx.putImageData(new ImageData(buf, tw, th), 0, 0);
+  return downC.toDataURL('image/jpeg', 0.85);
 }
 
 function renderAlbumGrid() {
   const layout = document.getElementById('albumViewLayout').value;
   const grid = document.getElementById('albumGrid');
-  document.getElementById('albumTitle').textContent = `📸 Photo Album — ${S.photos.length} Photo${S.photos.length !== 1 ? 's' : ''}`;
+  document.getElementById('albumTitle').textContent =
+    `📸 Photo Album — ${S.photos.length} Photo${S.photos.length !== 1 ? 's' : ''}`;
   grid.className = 'album-grid-' + layout;
   grid.innerHTML = '';
 
-  if (S.photos.length === 0) {
+  if (!S.photos.length) {
     grid.innerHTML = '<div class="album-empty">No photos loaded yet.<br>Open some photos to build your album.</div>';
     return;
   }
 
-  // Snapshot active state so we can restore after rendering
-  const savedAdj = S.adj, savedFilter = S.filter, savedHSL = S.hslAdj;
-
   S.photos.forEach((photo, idx) => {
+    // Use cached thumbnail; generate on first access (works on downscaled pixels)
+    if (!photo.thumb) photo.thumb = generatePhotoThumb(photo);
+
     const card = document.createElement('div');
     card.className = 'album-card';
-
-    // Render photo with its stored edits applied
-    const {data:src, width:w, height:h} = photo.origData;
-    const buf = new Uint8ClampedArray(src);
-    S.adj    = {...(photo.adj    || defaultAdj())};
-    S.filter = photo.filter || null;
-    S.hslAdj = photo.hslAdj ? JSON.parse(JSON.stringify(photo.hslAdj)) : {};
-    applyTone(buf, w, h);
-    applyColor(buf, w, h);
-    applyDetail(buf, w, h);
-    if (S.filter) applyFilterLUT(buf, w, h);
-    applyHSLPass(buf, w, h);
-
-    // Downscale to thumbnail for the card
-    const thumbW = Math.min(w, 600);
-    const thumbH = Math.round(h * thumbW / w);
-    const tmpC = document.createElement('canvas');
-    tmpC.width = w; tmpC.height = h;
-    tmpC.getContext('2d').putImageData(new ImageData(buf, w, h), 0, 0);
-    const thumbC = document.createElement('canvas');
-    thumbC.width = thumbW; thumbC.height = thumbH;
-    thumbC.getContext('2d').drawImage(tmpC, 0, 0, thumbW, thumbH);
-
-    const img = document.createElement('img');
-    img.src = thumbC.toDataURL('image/jpeg', 0.88);
-    img.alt = photo.name;
-    img.loading = 'lazy';
 
     const shine = document.createElement('div');
     shine.className = 'album-card-shine';
 
+    const img = document.createElement('img');
+    img.src = photo.thumb;
+    img.alt = photo.name;
+    img.loading = 'lazy';
+
     const badge = document.createElement('div');
     badge.className = 'album-card-badge';
-    badge.textContent = photo.filter ? photo.filter.replace(/-/g,' ') : (
-      Object.values(photo.adj || {}).some(v => v !== 0) ? 'Edited' : 'Original'
-    );
+    badge.textContent = photo.filter
+      ? photo.filter.replace(/-/g,' ')
+      : (Object.values(photo.adj || {}).some(v => v !== 0) ? 'Edited' : 'Original');
 
     const footer = document.createElement('div');
     footer.className = 'album-card-footer';
     footer.innerHTML = `<div class="album-card-name">${photo.name}</div>
-      <div class="album-card-sub">${w}×${h}px</div>`;
+      <div class="album-card-sub">${photo.origData.width}×${photo.origData.height}px</div>`;
 
     card.appendChild(shine);
     card.appendChild(img);
     card.appendChild(badge);
     card.appendChild(footer);
-
     card.onclick = () => { closeAlbum(); selectPhoto(idx); };
     grid.appendChild(card);
   });
-
-  // Restore saved state
-  S.adj = savedAdj; S.filter = savedFilter; S.hslAdj = savedHSL;
 }
 
 /* ═══════════════════════════════════════════════════════════
