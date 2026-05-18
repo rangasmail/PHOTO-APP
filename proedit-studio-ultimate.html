@@ -376,6 +376,97 @@ select.inp{cursor:pointer;}
 .color-chip{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.13s;flex-shrink:0;}
 .color-chip:hover{transform:scale(1.2);border-color:#fff;}
 
+/* Quick Filter sidebar */
+.qflt-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.qflt-btn{
+  padding:7px 6px;background:var(--bg2);border:1px solid var(--bdr);
+  color:var(--txt2);border-radius:var(--r);cursor:pointer;
+  font-size:10.5px;font-weight:600;font-family:inherit;
+  text-align:left;transition:.14s;display:flex;align-items:center;gap:5px;
+  white-space:nowrap;overflow:hidden;
+}
+.qflt-btn:hover{background:var(--bg3);color:var(--txt);border-color:var(--bdr2);}
+.qflt-btn.active{background:var(--acc);border-color:var(--acc);color:#fff;}
+.qflt-swatch{width:13px;height:13px;border-radius:3px;flex-shrink:0;border:1px solid rgba(255,255,255,.1);}
+
+/* ══ GLASSY ALBUM OVERLAY ══════════════════════════════════ */
+.album-overlay{
+  display:none;position:fixed;inset:0;z-index:800;
+  background:rgba(4,4,6,.96);overflow-y:auto;
+  animation:fadeInUp .3s ease;
+}
+.album-overlay.on{display:block;}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+
+.album-hdr{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;
+  background:rgba(14,15,18,.9);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.album-title{
+  font-size:20px;font-weight:800;
+  background:linear-gradient(130deg,#818cf8,#c084fc,#f472b6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.album-body{padding:28px 28px 48px;}
+
+/* Layout variants */
+.album-grid-classic{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:20px;}
+.album-grid-story{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;}
+.album-grid-story .album-card:first-child{grid-column:span 2;}
+.album-grid-story .album-card:first-child img{height:320px;}
+.album-grid-cinematic{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.album-grid-cinematic .album-card:nth-child(1),.album-grid-cinematic .album-card:nth-child(4){grid-row:span 2;}
+.album-grid-cinematic .album-card:nth-child(1) img,.album-grid-cinematic .album-card:nth-child(4) img{height:340px;}
+.album-grid-magazine{display:grid;grid-template-columns:3fr 2fr 2fr;gap:16px;}
+.album-grid-magazine .album-card:first-child img{height:360px;}
+.album-grid-wedding{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+
+/* Glassmorphism card */
+.album-card{
+  background:rgba(255,255,255,.045);
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border:1px solid rgba(255,255,255,.11);
+  border-radius:18px;overflow:hidden;
+  cursor:pointer;transition:.25s;position:relative;
+  box-shadow:0 8px 32px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.13);
+}
+.album-card:hover{
+  transform:translateY(-6px) scale(1.015);
+  border-color:rgba(99,102,241,.5);
+  box-shadow:0 24px 60px rgba(0,0,0,.65), 0 0 0 1px rgba(99,102,241,.35),
+             inset 0 1px 0 rgba(255,255,255,.2);
+}
+.album-card img{width:100%;height:200px;object-fit:cover;display:block;transition:.25s;}
+.album-card:hover img{transform:scale(1.04);}
+.album-card-shine{
+  position:absolute;top:0;left:0;right:0;height:45%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.09) 0%,transparent 100%);
+  border-radius:18px 18px 0 0;z-index:2;
+}
+.album-card-footer{
+  padding:12px 16px;
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(8px);
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.album-card-name{font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.album-card-sub{font-size:10px;color:var(--txt2);margin-top:2px;}
+.album-card-badge{
+  position:absolute;top:10px;right:10px;z-index:3;
+  padding:3px 9px;border-radius:20px;font-size:9.5px;font-weight:700;
+  background:rgba(99,102,241,.75);backdrop-filter:blur(4px);color:#fff;
+  border:1px solid rgba(255,255,255,.18);
+}
+.album-empty{
+  grid-column:1/-1;text-align:center;padding:80px 20px;
+  color:var(--txt2);font-size:15px;
+}
+
 /* Layer stack label */
 .apply-all-bar{
   display:flex;align-items:center;gap:8px;padding:6px 12px;
@@ -403,6 +494,9 @@ select.inp{cursor:pointer;}
   <button class="hdr-btn" onclick="toggleBeforeAfter()">◧ Before/After</button>
   <button class="hdr-btn" onclick="resetCurrent()">⟳ Reset</button>
   <div class="hdr-spacer"></div>
+  <button class="hdr-btn" onclick="showStyleTransfer()">🎨 Style Transfer</button>
+  <button class="hdr-btn" onclick="showAlbum()">📸 Album</button>
+  <div class="hdr-sep"></div>
   <button class="hdr-btn ai" onclick="aiEnhance()">✨ AI Enhance</button>
   <button class="hdr-btn gold" onclick="applyToAll()">⚡ Apply to All</button>
   <button class="hdr-btn ok" onclick="exportImage()">💾 Export</button>
@@ -470,6 +564,13 @@ select.inp{cursor:pointer;}
     <button class="sb-full" id="textBtn" onclick="activateText()">📝 Add Text</button>
     <button class="sb-full" onclick="addVignette()">🔵 Add Vignette</button>
     <button class="sb-full" onclick="applyBeautyMode()">💆 Natural Beauty Mode</button>
+  </div>
+
+  <!-- QUICK FILTERS -->
+  <div class="sb-sec">
+    <div class="sb-lbl">🎨 Quick Filters</div>
+    <div class="qflt-grid" id="qfltGrid"></div>
+    <button class="sb-full" style="margin-top:5px;" onclick="clearFilter()">✕ Remove Filter</button>
   </div>
 
   <!-- AI TOOLS -->
@@ -572,12 +673,12 @@ select.inp{cursor:pointer;}
       <button class="hdr-btn" onclick="captureFrame()" title="Capture Frame">📷</button>
     </div>
     <div class="cinema-grid">
-      <div class="cin-btn" onclick="applyCinema('teal')">Teal/Orange</div>
-      <div class="cin-btn" onclick="applyCinema('warm')">Warm Film</div>
-      <div class="cin-btn" onclick="applyCinema('cold')">Cold Blue</div>
-      <div class="cin-btn" onclick="applyCinema('bleach')">Bleach</div>
-      <div class="cin-btn" onclick="applyCinema('cross')">Cross Process</div>
-      <div class="cin-btn" onclick="applyCinema('night')">Night Mode</div>
+      <div class="cin-btn" onclick="applyCinema('teal',this)">Teal/Orange</div>
+      <div class="cin-btn" onclick="applyCinema('warm',this)">Warm Film</div>
+      <div class="cin-btn" onclick="applyCinema('cold',this)">Cold Blue</div>
+      <div class="cin-btn" onclick="applyCinema('bleach',this)">Bleach</div>
+      <div class="cin-btn" onclick="applyCinema('cross',this)">Cross Process</div>
+      <div class="cin-btn" onclick="applyCinema('night',this)">Night Mode</div>
     </div>
   </div>
 </main>
@@ -726,12 +827,12 @@ select.inp{cursor:pointer;}
     <div class="p-sec">
       <div class="p-sec-label">🎬 Cinematic Color Grades</div>
       <div class="cinema-grid">
-        <div class="cin-btn" onclick="applyCinema('teal')">Teal/Orange</div>
-        <div class="cin-btn" onclick="applyCinema('warm')">Warm Film</div>
-        <div class="cin-btn" onclick="applyCinema('cold')">Cold Blue</div>
-        <div class="cin-btn" onclick="applyCinema('bleach')">Bleach</div>
-        <div class="cin-btn" onclick="applyCinema('cross')">Cross Process</div>
-        <div class="cin-btn" onclick="applyCinema('night')">Night Mode</div>
+        <div class="cin-btn" onclick="applyCinema('teal',this)">Teal/Orange</div>
+        <div class="cin-btn" onclick="applyCinema('warm',this)">Warm Film</div>
+        <div class="cin-btn" onclick="applyCinema('cold',this)">Cold Blue</div>
+        <div class="cin-btn" onclick="applyCinema('bleach',this)">Bleach</div>
+        <div class="cin-btn" onclick="applyCinema('cross',this)">Cross Process</div>
+        <div class="cin-btn" onclick="applyCinema('night',this)">Night Mode</div>
       </div>
     </div>
     <div class="p-sec">
@@ -799,6 +900,27 @@ select.inp{cursor:pointer;}
   </div>
 </footer>
 </div><!-- end .app -->
+
+<!-- ═══════════════ GLASSY ALBUM OVERLAY ═══════════════ -->
+<div class="album-overlay" id="albumOverlay">
+  <div class="album-hdr">
+    <div class="album-title" id="albumTitle">📸 Photo Album</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <select class="inp" style="width:160px;font-size:11px;" id="albumViewLayout" onchange="renderAlbumGrid()">
+        <option value="classic">Classic Grid</option>
+        <option value="story">Story Album</option>
+        <option value="cinematic">Cinematic Collage</option>
+        <option value="magazine">Magazine Spread</option>
+        <option value="wedding">Wedding Book</option>
+      </select>
+      <button class="hdr-btn ok" onclick="exportAll()">📦 Export All</button>
+      <button class="hdr-btn" onclick="closeAlbum()">✕ Close</button>
+    </div>
+  </div>
+  <div class="album-body">
+    <div id="albumGrid" class="album-grid-classic"></div>
+  </div>
+</div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -1129,6 +1251,15 @@ function selectPhoto(idx) {
 
   // Update sliders to match photo's adj
   syncSlidersToState();
+  // Rebuild HSL panel so sliders reflect this photo's stored HSL values
+  buildHSLPanel();
+
+  // Sync active quick filter button
+  document.querySelectorAll('.qflt-btn').forEach(b => b.classList.remove('active'));
+  if (S.filter) {
+    const qb = document.getElementById('qflt-' + S.filter);
+    if (qb) qb.classList.add('active');
+  }
 
   // Mark active in filmstrip
   document.querySelectorAll('.strip-thumb').forEach(t => t.classList.remove('active'));
@@ -1713,13 +1844,17 @@ function cancelCrop() {
 function rotate90() {
   if (!S.origData) return;
   saveHistory();
-  const {data:d, width:w, height:h} = S.origData;
+  const {width:w, height:h} = S.origData;
+  // putImageData ignores transforms — draw origData into a source canvas first
+  const src = document.createElement('canvas');
+  src.width = w; src.height = h;
+  src.getContext('2d').putImageData(S.origData, 0, 0);
   const tc = document.createElement('canvas');
   tc.width = h; tc.height = w;
   const tx = tc.getContext('2d');
   tx.translate(h/2, w/2);
   tx.rotate(Math.PI/2);
-  tx.putImageData(S.origData, -w/2, -h/2);
+  tx.drawImage(src, -w/2, -h/2);
   canvas.width = h; canvas.height = w;
   ctx.drawImage(tc, 0, 0);
   S.origData = ctx.getImageData(0,0,h,w);
@@ -1732,11 +1867,15 @@ function rotate180() {
   if (!S.origData) return;
   saveHistory();
   const {width:w, height:h} = S.origData;
+  const src = document.createElement('canvas');
+  src.width = w; src.height = h;
+  src.getContext('2d').putImageData(S.origData, 0, 0);
   const tc = document.createElement('canvas');
   tc.width = w; tc.height = h;
   const tx = tc.getContext('2d');
-  tx.translate(w/2,h/2); tx.rotate(Math.PI);
-  tx.putImageData(S.origData, -w/2, -h/2);
+  tx.translate(w/2, h/2); tx.rotate(Math.PI);
+  tx.drawImage(src, -w/2, -h/2);
+  canvas.width = w; canvas.height = h;
   ctx.drawImage(tc, 0, 0);
   S.origData = ctx.getImageData(0,0,w,h);
   if (S.activeIdx>=0) S.photos[S.activeIdx].origData = S.origData;
@@ -1748,12 +1887,16 @@ function flipH() {
   if (!S.origData) return;
   saveHistory();
   const {width:w, height:h} = S.origData;
+  const src = document.createElement('canvas');
+  src.width = w; src.height = h;
+  src.getContext('2d').putImageData(S.origData, 0, 0);
   const tc = document.createElement('canvas');
   tc.width = w; tc.height = h;
   const tx = tc.getContext('2d');
-  tx.translate(w,0); tx.scale(-1,1);
-  tx.putImageData(S.origData, 0, 0);
-  ctx.drawImage(tc,0,0);
+  tx.translate(w, 0); tx.scale(-1, 1);
+  tx.drawImage(src, 0, 0);
+  canvas.width = w; canvas.height = h;
+  ctx.drawImage(tc, 0, 0);
   S.origData = ctx.getImageData(0,0,w,h);
   if (S.activeIdx>=0) S.photos[S.activeIdx].origData = S.origData;
   scheduleRender();
@@ -1764,12 +1907,16 @@ function flipV() {
   if (!S.origData) return;
   saveHistory();
   const {width:w, height:h} = S.origData;
+  const src = document.createElement('canvas');
+  src.width = w; src.height = h;
+  src.getContext('2d').putImageData(S.origData, 0, 0);
   const tc = document.createElement('canvas');
   tc.width = w; tc.height = h;
   const tx = tc.getContext('2d');
-  tx.translate(0,h); tx.scale(1,-1);
-  tx.putImageData(S.origData, 0, 0);
-  ctx.drawImage(tc,0,0);
+  tx.translate(0, h); tx.scale(1, -1);
+  tx.drawImage(src, 0, 0);
+  canvas.width = w; canvas.height = h;
+  ctx.drawImage(tc, 0, 0);
   S.origData = ctx.getImageData(0,0,w,h);
   if (S.activeIdx>=0) S.photos[S.activeIdx].origData = S.origData;
   scheduleRender();
@@ -2048,6 +2195,10 @@ function applyFilter(name) {
   document.querySelectorAll('.flt-item').forEach(i=>i.classList.remove('active'));
   const el = document.getElementById('flt-'+name);
   if (el) el.classList.add('active');
+  // Sync quick filter sidebar highlight
+  document.querySelectorAll('.qflt-btn').forEach(b=>b.classList.remove('active'));
+  const qb = document.getElementById('qflt-'+name);
+  if (qb) qb.classList.add('active');
   scheduleRender();
   setStatus('Filter: ' + name);
 }
@@ -2068,7 +2219,7 @@ function setFStr(el) {
 
 function clearFilter() {
   S.filter = null;
-  document.querySelectorAll('.flt-item,.top5-item').forEach(i=>i.classList.remove('active'));
+  document.querySelectorAll('.flt-item,.top5-item,.qflt-btn').forEach(i=>i.classList.remove('active'));
   scheduleRender();
   toast('Filter removed');
 }
@@ -2200,20 +2351,21 @@ const HSL_CHANNELS = [
 function buildHSLPanel() {
   const c = document.getElementById('hslCtrls');
   c.innerHTML = '';
+  S.hslAdj = S.hslAdj || {};
   HSL_CHANNELS.forEach(ch => {
     const key = ch.name.toLowerCase();
-    S.hslAdj = S.hslAdj || {};
-    if (!S.hslAdj[key]) S.hslAdj[key] = {hue:0,sat:0,lum:0};
+    if (!S.hslAdj[key]) S.hslAdj[key] = {hue:0, sat:0, lum:0};
+    const adj = S.hslAdj[key];
     const sec = document.createElement('div');
     sec.className = 'p-sec';
     sec.innerHTML = `
       <div class="p-sec-label" style="color:${ch.color}">${ch.name}</div>
-      <div class="ctrl"><div class="ctrl-label"><span>Hue</span><span class="ctrl-val" id="hsl${key}H">0</span></div>
-        <input type="range" min="-100" max="100" value="0" oninput="onHSL('${key}','hue',this)"></div>
-      <div class="ctrl"><div class="ctrl-label"><span>Saturation</span><span class="ctrl-val" id="hsl${key}S">0</span></div>
-        <input type="range" min="-100" max="100" value="0" oninput="onHSL('${key}','sat',this)"></div>
-      <div class="ctrl"><div class="ctrl-label"><span>Luminance</span><span class="ctrl-val" id="hsl${key}L">0</span></div>
-        <input type="range" min="-100" max="100" value="0" oninput="onHSL('${key}','lum',this)"></div>`;
+      <div class="ctrl"><div class="ctrl-label"><span>Hue</span><span class="ctrl-val" id="hsl${key}H">${adj.hue}</span></div>
+        <input type="range" min="-100" max="100" value="${adj.hue}" oninput="onHSL('${key}','hue',this)"></div>
+      <div class="ctrl"><div class="ctrl-label"><span>Saturation</span><span class="ctrl-val" id="hsl${key}S">${adj.sat}</span></div>
+        <input type="range" min="-100" max="100" value="${adj.sat}" oninput="onHSL('${key}','sat',this)"></div>
+      <div class="ctrl"><div class="ctrl-label"><span>Luminance</span><span class="ctrl-val" id="hsl${key}L">${adj.lum}</span></div>
+        <input type="range" min="-100" max="100" value="${adj.lum}" oninput="onHSL('${key}','lum',this)"></div>`;
     c.appendChild(sec);
   });
 }
@@ -2630,9 +2782,9 @@ function exportVideoStill() {
   setTimeout(() => exportImage(), 100);
 }
 
-function applyCinema(effect) {
+function applyCinema(effect, el) {
   document.querySelectorAll('.cin-btn').forEach(b=>b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  if (el) el.classList.add('active');
   S.cinemaEffect = effect;
 
   const presets = {
@@ -2993,12 +3145,100 @@ async function processStyleTransfer() {
 
 function generateAlbum() {
   const layout = document.getElementById('albumLayout').value;
-  const ppp = document.getElementById('vPpp').textContent;
   closeModal('modalAlbum');
-  toast(`📸 Album (${layout}, ${ppp}/page) ready — Export All to save`);
+  // Map modal layout names to album overlay grid names
+  const layoutMap = {classic:'classic',story:'story',cinematic:'cinematic',magazine:'magazine',wedding:'wedding'};
+  document.getElementById('albumViewLayout').value = layoutMap[layout] || 'classic';
+  openAlbum();
 }
 
-function showAlbum() { openModal('modalAlbum'); }
+function showAlbum() {
+  if (S.photos.length === 0) { toast('Load some photos first'); return; }
+  openAlbum();
+}
+
+function openAlbum() {
+  if (S.photos.length === 0) { toast('Load some photos first'); return; }
+  document.getElementById('albumOverlay').classList.add('on');
+  renderAlbumGrid();
+}
+
+function closeAlbum() {
+  document.getElementById('albumOverlay').classList.remove('on');
+}
+
+function renderAlbumGrid() {
+  const layout = document.getElementById('albumViewLayout').value;
+  const grid = document.getElementById('albumGrid');
+  document.getElementById('albumTitle').textContent = `📸 Photo Album — ${S.photos.length} Photo${S.photos.length !== 1 ? 's' : ''}`;
+  grid.className = 'album-grid-' + layout;
+  grid.innerHTML = '';
+
+  if (S.photos.length === 0) {
+    grid.innerHTML = '<div class="album-empty">No photos loaded yet.<br>Open some photos to build your album.</div>';
+    return;
+  }
+
+  // Snapshot active state so we can restore after rendering
+  const savedAdj = S.adj, savedFilter = S.filter, savedHSL = S.hslAdj;
+
+  S.photos.forEach((photo, idx) => {
+    const card = document.createElement('div');
+    card.className = 'album-card';
+
+    // Render photo with its stored edits applied
+    const {data:src, width:w, height:h} = photo.origData;
+    const buf = new Uint8ClampedArray(src);
+    S.adj    = {...(photo.adj    || defaultAdj())};
+    S.filter = photo.filter || null;
+    S.hslAdj = photo.hslAdj ? JSON.parse(JSON.stringify(photo.hslAdj)) : {};
+    applyTone(buf, w, h);
+    applyColor(buf, w, h);
+    applyDetail(buf, w, h);
+    if (S.filter) applyFilterLUT(buf, w, h);
+    applyHSLPass(buf, w, h);
+
+    // Downscale to thumbnail for the card
+    const thumbW = Math.min(w, 600);
+    const thumbH = Math.round(h * thumbW / w);
+    const tmpC = document.createElement('canvas');
+    tmpC.width = w; tmpC.height = h;
+    tmpC.getContext('2d').putImageData(new ImageData(buf, w, h), 0, 0);
+    const thumbC = document.createElement('canvas');
+    thumbC.width = thumbW; thumbC.height = thumbH;
+    thumbC.getContext('2d').drawImage(tmpC, 0, 0, thumbW, thumbH);
+
+    const img = document.createElement('img');
+    img.src = thumbC.toDataURL('image/jpeg', 0.88);
+    img.alt = photo.name;
+    img.loading = 'lazy';
+
+    const shine = document.createElement('div');
+    shine.className = 'album-card-shine';
+
+    const badge = document.createElement('div');
+    badge.className = 'album-card-badge';
+    badge.textContent = photo.filter ? photo.filter.replace(/-/g,' ') : (
+      Object.values(photo.adj || {}).some(v => v !== 0) ? 'Edited' : 'Original'
+    );
+
+    const footer = document.createElement('div');
+    footer.className = 'album-card-footer';
+    footer.innerHTML = `<div class="album-card-name">${photo.name}</div>
+      <div class="album-card-sub">${w}×${h}px</div>`;
+
+    card.appendChild(shine);
+    card.appendChild(img);
+    card.appendChild(badge);
+    card.appendChild(footer);
+
+    card.onclick = () => { closeAlbum(); selectPhoto(idx); };
+    grid.appendChild(card);
+  });
+
+  // Restore saved state
+  S.adj = savedAdj; S.filter = savedFilter; S.hslAdj = savedHSL;
+}
 
 /* ═══════════════════════════════════════════════════════════
    HSL PASS in render pipeline
@@ -3074,6 +3314,41 @@ document.addEventListener('keydown', e => {
 });
 
 /* ═══════════════════════════════════════════════════════════
+   QUICK FILTERS (LEFT SIDEBAR)
+═══════════════════════════════════════════════════════════ */
+const QUICK_FILTERS = [
+  {key:'vsco-c1',       label:'VSCO C1',     swatch:'linear-gradient(135deg,#f8f4e8,#c4a070)'},
+  {key:'clarendon',     label:'Clarendon',   swatch:'linear-gradient(135deg,#a8d8ea,#f4a261)'},
+  {key:'golden-hour',   label:'Golden Hour', swatch:'linear-gradient(135deg,#ffd89b,#e07b54)'},
+  {key:'cinematic-teal',label:'Teal+Orange', swatch:'linear-gradient(135deg,#0d3b6e,#f4a261)'},
+  {key:'noir',          label:'Film Noir',   swatch:'linear-gradient(135deg,#111,#777)'},
+  {key:'vintage-film',  label:'Vintage',     swatch:'linear-gradient(135deg,#a09070,#e0d0a8)'},
+  {key:'soft-pink',     label:'Soft Pink',   swatch:'linear-gradient(135deg,#ffd4e0,#ff80a0)'},
+  {key:'dreamy',        label:'Dreamy',      swatch:'linear-gradient(135deg,#e8e0f8,#b8a0d0)'},
+  {key:'vivid',         label:'Vivid',       swatch:'linear-gradient(135deg,#ff4040,#4040ff)'},
+  {key:'sepia',         label:'Sepia',       swatch:'linear-gradient(135deg,#7b6344,#c8a880)'},
+];
+
+function buildQuickFilters() {
+  const grid = document.getElementById('qfltGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  QUICK_FILTERS.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = 'qflt-btn';
+    btn.id = 'qflt-' + f.key;
+    btn.title = f.label;
+    btn.innerHTML = `<span class="qflt-swatch" style="background:${f.swatch}"></span>${f.label}`;
+    btn.onclick = () => {
+      applyFilter(f.key);
+      document.querySelectorAll('.qflt-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+    grid.appendChild(btn);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
    INITIALIZE APP
 ═══════════════════════════════════════════════════════════ */
 function init() {
@@ -3083,6 +3358,7 @@ function init() {
   // Build dynamic panels
   buildFilterPanel();
   buildHSLPanel();
+  buildQuickFilters();
 
   // Init curves canvas size
   curvesC.width = curvesC.offsetWidth || 260;
