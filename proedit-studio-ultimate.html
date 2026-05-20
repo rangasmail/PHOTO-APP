@@ -1830,44 +1830,63 @@ function toggleCrop() {
 
 function setupCropOverlay() {
   if (!canvas.width) return;
-  // Match overlay to canvas display size
-  const rect = canvas.getBoundingClientRect();
-  cropOv.width  = canvas.width;
-  cropOv.height = canvas.height;
+
+  // Use getBoundingClientRect for both canvas and its wrap container so the
+  // overlay is positioned correctly even when the canvas is flex-centered or
+  // has a CSS transform (zoom) applied.
+  const canvasRect = canvas.getBoundingClientRect();
+  const wrapRect   = document.getElementById('canvasWrap').getBoundingClientRect();
+
+  // Set overlay internal resolution to the DISPLAY pixel size (not full image
+  // resolution). This keeps all crop coordinates in display-pixel space so
+  // drawing and mouse events need no extra scaling factor.
+  const dw = Math.max(1, Math.round(canvasRect.width));
+  const dh = Math.max(1, Math.round(canvasRect.height));
+
+  cropOv.width  = dw;
+  cropOv.height = dh;
   cropOv.style.display = 'block';
-  cropOv.style.width   = rect.width  + 'px';
-  cropOv.style.height  = rect.height + 'px';
-  cropOv.style.left    = (canvas.offsetLeft) + 'px';
-  cropOv.style.top     = (canvas.offsetTop)  + 'px';
+  cropOv.style.width   = dw + 'px';
+  cropOv.style.height  = dh + 'px';
+  // Position relative to canvasWrap (the overlay's offsetParent)
+  cropOv.style.left    = (canvasRect.left - wrapRect.left) + 'px';
+  cropOv.style.top     = (canvasRect.top  - wrapRect.top)  + 'px';
   cropOv.style.cursor  = 'crosshair';
 
-  cropOv.onmousedown = cropMD;
-  cropOv.onmousemove = cropMM;
-  cropOv.onmouseup   = cropMU;
+  cropOv.onmousedown   = cropMD;
+  cropOv.onmousemove   = cropMM;
+  cropOv.onmouseup     = cropMU;
+  // Release drag even when mouse leaves the overlay
+  cropOv.onmouseleave  = cropMU;
+  // Touch support
+  cropOv.ontouchstart  = e => { e.preventDefault(); cropMD(e.touches[0]); };
+  cropOv.ontouchmove   = e => { e.preventDefault(); cropMM(e.touches[0]); };
+  cropOv.ontouchend    = cropMU;
 }
 
 function cropMD(e) {
   const r = cropOv.getBoundingClientRect();
-  const sx = (e.clientX - r.left) / r.width  * cropOv.width;
-  const sy = (e.clientY - r.top)  / r.height * cropOv.height;
-  _cropStart = {x:sx, y:sy};
+  _cropStart    = {
+    x: Math.max(0, Math.min(e.clientX - r.left, cropOv.width)),
+    y: Math.max(0, Math.min(e.clientY - r.top,  cropOv.height))
+  };
   _cropDragging = true;
 }
 
 function cropMM(e) {
   if (!_cropDragging || !_cropStart) return;
-  const r = cropOv.getBoundingClientRect();
-  let cx = (e.clientX - r.left) / r.width  * cropOv.width;
-  let cy = (e.clientY - r.top)  / r.height * cropOv.height;
+  const r  = cropOv.getBoundingClientRect();
+  const cx = Math.max(0, Math.min(e.clientX - r.left, cropOv.width));
+  const cy = Math.max(0, Math.min(e.clientY - r.top,  cropOv.height));
 
   let x = Math.min(_cropStart.x, cx);
   let y = Math.min(_cropStart.y, cy);
   let w = Math.abs(cx - _cropStart.x);
   let h = Math.abs(cy - _cropStart.y);
 
-  // Enforce aspect ratio
+  // Enforce fixed aspect ratio
   if (S.cropAR !== 'free') {
-    const [a1,a2] = S.cropAR.split(':').map(Number);
+    const [a1, a2] = S.cropAR.split(':').map(Number);
     const ratio = a1 / a2;
     if (w / h > ratio) w = h * ratio; else h = w / ratio;
   }
@@ -1906,13 +1925,17 @@ function drawCropOverlay(x,y,w,h) {
     cropCtx.beginPath(); cropCtx.arc(cx2,cy2,4,0,Math.PI*2); cropCtx.fill();
   });
 
-  // Size label
-  const sw = Math.round(w), sh = Math.round(h);
+  // Size label in real image pixels (overlay is in display-pixel space)
+  const scX  = S.origData ? S.origData.width  / cropOv.width  : 1;
+  const scY  = S.origData ? S.origData.height / cropOv.height : 1;
+  const imgW = Math.round(w * scX);
+  const imgH = Math.round(h * scY);
+  const lbl  = `${imgW}×${imgH}`;
   cropCtx.fillStyle = 'rgba(0,0,0,.75)';
-  cropCtx.fillRect(x+4, y+4, 80, 18);
+  cropCtx.fillRect(x+4, y+4, lbl.length * 7 + 8, 18);
   cropCtx.fillStyle = '#fff';
   cropCtx.font = '11px JetBrains Mono,monospace';
-  cropCtx.fillText(`${sw}×${sh}`, x+8, y+16);
+  cropCtx.fillText(lbl, x+8, y+16);
 }
 
 function setCropAR(ar) { S.cropAR = ar; }
@@ -1946,11 +1969,19 @@ function applyCrop() {
 }
 
 function cancelCrop() {
-  S.cropActive = false;
-  _cropStart = null; _cropRect = null;
+  S.cropActive  = false;
+  _cropDragging = false;
+  _cropStart    = null;
+  _cropRect     = null;
   cropOv.style.display = 'none';
-  cropCtx.clearRect(0,0,cropOv.width,cropOv.height);
-  cropOv.onmousedown = null; cropOv.onmousemove = null; cropOv.onmouseup = null;
+  cropCtx.clearRect(0, 0, cropOv.width, cropOv.height);
+  cropOv.onmousedown  = null;
+  cropOv.onmousemove  = null;
+  cropOv.onmouseup    = null;
+  cropOv.onmouseleave = null;
+  cropOv.ontouchstart = null;
+  cropOv.ontouchmove  = null;
+  cropOv.ontouchend   = null;
   document.getElementById('cropBtn').classList.remove('active');
   document.getElementById('cropBar').style.display = 'none';
 }
@@ -3531,6 +3562,9 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape') { cancelCrop(); cancelText(); }
 });
+
+// Release crop drag when mouse is released anywhere in the document
+document.addEventListener('mouseup', () => { _cropDragging = false; });
 
 /* ═══════════════════════════════════════════════════════════
    QUICK FILTERS (LEFT SIDEBAR)
