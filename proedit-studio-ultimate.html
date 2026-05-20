@@ -34,14 +34,15 @@
 body{font-family:'Inter',sans-serif;background:var(--bg0);color:var(--txt);overflow:hidden;user-select:none;-webkit-user-select:none;}
 
 /* ══ LAYOUT ═══════════════════════════════ */
-.app{display:grid;grid-template-columns:260px 1fr 298px;grid-template-rows:52px 1fr 90px 40px;height:100vh;}
+.app{display:grid;grid-template-columns:260px 1fr 298px;grid-template-rows:auto 1fr 90px 40px;height:100vh;}
 
 /* ══ HEADER ════════════════════════════════ */
 .hdr{
   grid-column:1/-1;
   background:var(--bg1);
   border-bottom:1px solid var(--bdr);
-  display:flex;align-items:center;gap:8px;padding:0 14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:6px;
+  padding:7px 14px;row-gap:6px;
 }
 .logo{
   font-size:17px;font-weight:900;letter-spacing:-.3px;
@@ -216,6 +217,53 @@ body{font-family:'Inter',sans-serif;background:var(--bg0);color:var(--txt);overf
   font-size:8px;color:#fff;font-weight:700;
 }
 .strip-badge.show{display:flex;}
+
+/* Selection checkbox on filmstrip thumbnails */
+.strip-chk{
+  position:absolute;top:3px;left:3px;width:16px;height:16px;
+  background:rgba(0,0,0,.65);border:1.5px solid rgba(255,255,255,.4);
+  border-radius:3px;display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:#fff;cursor:pointer;transition:.12s;z-index:5;
+}
+.strip-thumb.selected .strip-chk{background:var(--acc);border-color:var(--acc);}
+.strip-thumb.selected{border-color:var(--acc);}
+
+/* Filmstrip toolbar */
+.strip-toolbar{
+  flex-shrink:0;display:flex;align-items:center;gap:5px;
+  padding-right:8px;border-right:1px solid var(--bdr);margin-right:4px;
+}
+.strip-tbtn{
+  padding:5px 9px;background:var(--bg2);border:1px solid var(--bdr);
+  color:var(--txt2);border-radius:var(--r);cursor:pointer;
+  font-size:10.5px;font-weight:600;font-family:inherit;
+  white-space:nowrap;transition:.13s;
+}
+.strip-tbtn:hover{background:var(--bg3);color:var(--txt);border-color:var(--bdr2);}
+.strip-tbtn.ok{background:var(--ok);color:#fff;border-color:var(--ok);}
+.strip-tbtn.ok:hover{filter:brightness(1.1);}
+
+/* Batch progress overlay */
+#batchOverlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);
+  z-index:1000;display:none;align-items:center;justify-content:center;
+}
+#batchOverlay.show{display:flex;}
+.batch-box{
+  background:var(--bg2);border:1px solid var(--bdr2);border-radius:var(--r2);
+  padding:28px 32px;min-width:380px;max-width:480px;
+  box-shadow:0 20px 60px rgba(0,0,0,.8);
+}
+.batch-title{font-size:16px;font-weight:800;margin-bottom:6px;}
+.batch-sub{font-size:12px;color:var(--txt2);margin-bottom:18px;line-height:1.5;}
+.batch-file{font-size:11px;color:var(--txt2);font-family:'JetBrains Mono',monospace;
+  margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.batch-bar-wrap{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:16px;}
+.batch-bar{height:100%;background:linear-gradient(90deg,var(--acc),#c084fc);
+  border-radius:3px;transition:width .3s ease;width:0%;}
+.batch-count{font-size:11px;font-weight:700;color:var(--acc);margin-bottom:18px;
+  font-family:'JetBrains Mono',monospace;}
+.batch-actions{display:flex;gap:10px;}
 
 /* ══ STATUS BAR ════════════════════════════ */
 .status{
@@ -491,15 +539,16 @@ select.inp{cursor:pointer;}
   <div class="hdr-sep"></div>
   <button class="hdr-btn" onclick="undo()" title="Ctrl+Z">↺ Undo</button>
   <button class="hdr-btn" onclick="redo()" title="Ctrl+Y">↻ Redo</button>
-  <button class="hdr-btn" onclick="toggleBeforeAfter()">◧ Before/After</button>
+  <button class="hdr-btn" onclick="toggleBeforeAfter()">◧ B/A</button>
   <button class="hdr-btn" onclick="resetCurrent()">⟳ Reset</button>
-  <div class="hdr-spacer"></div>
-  <button class="hdr-btn" onclick="showStyleTransfer()">🎨 Style Transfer</button>
-  <button class="hdr-btn" onclick="showAlbum()">📸 Album</button>
   <div class="hdr-sep"></div>
+  <button class="hdr-btn" onclick="showStyleTransfer()">🎨 Style</button>
+  <button class="hdr-btn" onclick="showAlbum()">📸 Album</button>
+  <div class="hdr-spacer"></div>
   <button class="hdr-btn ai" onclick="aiEnhance()">✨ AI Enhance</button>
   <button class="hdr-btn gold" onclick="applyToAll()">⚡ Apply to All</button>
-  <button class="hdr-btn ok" onclick="exportImage()">💾 Export</button>
+  <button class="hdr-btn" onclick="exportAll()">📦 Export All</button>
+  <button class="hdr-btn ok" onclick="exportImage()">💾 Save</button>
 </header>
 
 <!-- ═══════════════ LEFT SIDEBAR ═══════════════ -->
@@ -884,6 +933,11 @@ select.inp{cursor:pointer;}
 
 <!-- ═══════════════ FILMSTRIP ═══════════════ -->
 <div class="filmstrip" id="filmstrip">
+  <div class="strip-toolbar" id="stripToolbar" style="display:none;">
+    <button class="strip-tbtn" onclick="selectAllPhotos()" title="Select All">☑ All</button>
+    <button class="strip-tbtn" onclick="deselectAllPhotos()" title="Deselect All">☐ None</button>
+    <button class="strip-tbtn ok" onclick="exportSelected()" title="Export selected photos">📦 Export Selected</button>
+  </div>
   <div class="strip-empty" id="stripEmpty">Open photos or a folder to see them here · Click a thumbnail to edit it · Apply edits to all with one click</div>
 </div>
 
@@ -919,6 +973,20 @@ select.inp{cursor:pointer;}
   </div>
   <div class="album-body">
     <div id="albumGrid" class="album-grid-classic"></div>
+  </div>
+</div>
+
+<!-- Batch progress overlay -->
+<div id="batchOverlay">
+  <div class="batch-box">
+    <div class="batch-title" id="batchTitle">📦 Exporting Photos…</div>
+    <div class="batch-sub" id="batchSub">Processing and downloading your photos. Please wait.</div>
+    <div class="batch-file" id="batchFile">Preparing…</div>
+    <div class="batch-bar-wrap"><div class="batch-bar" id="batchBar"></div></div>
+    <div class="batch-count" id="batchCount">0 / 0</div>
+    <div class="batch-actions">
+      <button class="pbtn" style="flex:1;" onclick="cancelBatch()">✕ Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1124,39 +1192,47 @@ function loadFiles(files) {
 function loadImageFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      // Draw to temp canvas to get ImageData
-      const tc = document.createElement('canvas');
-      tc.width = img.width; tc.height = img.height;
-      const tx = tc.getContext('2d', {willReadFrequently:true});
-      tx.drawImage(img, 0, 0);
-      const origData = tx.getImageData(0, 0, img.width, img.height);
-
-      const entry = {
-        id: Date.now() + Math.random(),
-        name: file.name,
-        dataURL: e.target.result,
-        img,
-        origData,
-        adj: {...defaultAdj()},
-        filter: null,
-        filterStrength: 100,
-        history: [],
-        histIdx: -1,
-        processed: false,
-        thumb: null
-      };
-      S.photos.push(entry);
-      addFilmstripThumb(entry, S.photos.length - 1);
-      document.getElementById('photoCount').textContent = S.photos.length;
-
-      if (S.activeIdx === -1) selectPhoto(S.photos.length - 1);
-      setStatus(`Loaded: ${file.name} (${img.width}×${img.height})`);
+    const entry = {
+      id: Date.now() + Math.random(),
+      name: file.name,
+      dataURL: e.target.result,
+      img: null,
+      origData: null,   // decoded lazily when photo is selected
+      adj: {...defaultAdj()},
+      filter: null,
+      filterStrength: 100,
+      hslAdj: {},
+      history: [],
+      histIdx: -1,
+      processed: false,
+      thumb: null
     };
-    img.src = e.target.result;
+    S.photos.push(entry);
+    const idx = S.photos.length - 1;
+    addFilmstripThumb(entry, idx);
+    document.getElementById('photoCount').textContent = S.photos.length;
+    if (S.activeIdx === -1) selectPhoto(idx);
+    else setStatus(`Loaded: ${file.name}`);
   };
   reader.readAsDataURL(file);
+}
+
+function decodePhoto(photo) {
+  if (photo.origData) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const tc = document.createElement('canvas');
+      tc.width = img.width; tc.height = img.height;
+      const tx = tc.getContext('2d', {willReadFrequently: true});
+      tx.drawImage(img, 0, 0);
+      photo.origData = tx.getImageData(0, 0, img.width, img.height);
+      photo.img = img;
+      resolve();
+    };
+    img.onerror = reject;
+    img.src = photo.dataURL;
+  });
 }
 
 function defaultAdj(){
@@ -1208,23 +1284,49 @@ function fmtTime(s){
 ═══════════════════════════════════════════════════════════ */
 function addFilmstripThumb(entry, idx) {
   document.getElementById('stripEmpty').style.display = 'none';
+  document.getElementById('stripToolbar').style.display = 'flex';
+
   const div = document.createElement('div');
   div.className = 'strip-thumb';
   div.id = `thumb-${entry.id}`;
-  div.onclick = () => selectPhoto(idx);
+  div.onclick = e => {
+    if (e.target.classList.contains('strip-chk')) return; // handled by checkbox
+    selectPhoto(idx);
+  };
+
   const img = document.createElement('img');
   img.src = entry.dataURL;
+
   const badge = document.createElement('div');
   badge.className = 'strip-badge';
   badge.id = `badge-${entry.id}`;
   badge.textContent = '✓';
+
+  const chk = document.createElement('div');
+  chk.className = 'strip-chk';
+  chk.title = 'Select for batch export';
+  chk.textContent = '✓';
+  chk.onclick = e => {
+    e.stopPropagation();
+    div.classList.toggle('selected');
+  };
+
   div.appendChild(img);
   div.appendChild(badge);
+  div.appendChild(chk);
   filmstrip.appendChild(div);
 }
 
+function selectAllPhotos() {
+  document.querySelectorAll('.strip-thumb').forEach(t => t.classList.add('selected'));
+}
+
+function deselectAllPhotos() {
+  document.querySelectorAll('.strip-thumb').forEach(t => t.classList.remove('selected'));
+}
+
 function selectPhoto(idx) {
-  // Save current photo's full state before switching; invalidate cached thumbnail
+  // Save current photo's state before switching
   if (S.activeIdx >= 0 && S.photos[S.activeIdx]) {
     S.photos[S.activeIdx].adj    = {...S.adj};
     S.photos[S.activeIdx].filter = S.filter;
@@ -1235,41 +1337,45 @@ function selectPhoto(idx) {
   const photo = S.photos[idx];
   if (!photo) return;
 
-  // Restore this photo's full state
+  // Mark filmstrip active immediately so the UI feels responsive
+  document.querySelectorAll('.strip-thumb').forEach(t => t.classList.remove('active'));
+  const thumbEl = document.getElementById(`thumb-${photo.id}`);
+  if (thumbEl) { thumbEl.classList.add('active'); thumbEl.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }
+
+  if (!photo.origData) {
+    setStatus(`Loading ${photo.name}…`);
+    decodePhoto(photo).then(() => _applySelectPhoto(photo)).catch(() => toast('Failed to decode ' + photo.name));
+    return;
+  }
+  _applySelectPhoto(photo);
+}
+
+function _applySelectPhoto(photo) {
   S.adj    = {...photo.adj};
   S.filter = photo.filter || null;
   S.hslAdj = photo.hslAdj ? JSON.parse(JSON.stringify(photo.hslAdj)) : {};
   S.origData = photo.origData;
 
-  // Set canvas size
   canvas.width  = photo.origData.width;
   canvas.height = photo.origData.height;
   dropZone.classList.add('hidden');
 
-  // Update HUD
-  document.getElementById('hudRes').textContent  = `${photo.origData.width}×${photo.origData.height}`;
-  document.getElementById('hudFmt').textContent  = photo.name.split('.').pop().toUpperCase();
-  document.getElementById('hud').style.display   = 'block';
+  document.getElementById('hudRes').textContent    = `${photo.origData.width}×${photo.origData.height}`;
+  document.getElementById('hudFmt').textContent    = photo.name.split('.').pop().toUpperCase();
+  document.getElementById('hud').style.display     = 'block';
   document.getElementById('statusRes').textContent = `${photo.origData.width}×${photo.origData.height}`;
 
-  // Update sliders to match photo's adj
   syncSlidersToState();
   syncHSLSliders();
 
-  // Sync active quick filter button
   document.querySelectorAll('.qflt-btn').forEach(b => b.classList.remove('active'));
   if (S.filter) {
     const qb = document.getElementById('qflt-' + S.filter);
     if (qb) qb.classList.add('active');
   }
 
-  // Mark active in filmstrip
-  document.querySelectorAll('.strip-thumb').forEach(t => t.classList.remove('active'));
-  const thumb = document.getElementById(`thumb-${photo.id}`);
-  if (thumb) { thumb.classList.add('active'); thumb.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }
-
   scheduleRender();
-  setStatus(`Editing: ${photo.name}`);
+  setStatus(`Editing: ${photo.name} (${photo.origData.width}×${photo.origData.height})`);
 }
 
 function syncSlidersToState() {
@@ -2923,45 +3029,39 @@ function applyPreset(type) {
 /* ═══════════════════════════════════════════════════════════
    APPLY TO ALL — one-click batch
 ═══════════════════════════════════════════════════════════ */
-async function applyToAll() {
+function applyToAll() {
   if (S.photos.length === 0) { toast('Load some photos first'); return; }
   if (S.activeIdx < 0) { toast('Select a photo to use as reference'); return; }
+
+  // Save active photo's latest state before copying
+  if (S.photos[S.activeIdx]) {
+    S.photos[S.activeIdx].adj    = {...S.adj};
+    S.photos[S.activeIdx].filter = S.filter;
+    S.photos[S.activeIdx].hslAdj = JSON.parse(JSON.stringify(S.hslAdj || {}));
+  }
 
   const adjSnap    = {...S.adj};
   const filterSnap = S.filter;
   const hslSnap    = JSON.parse(JSON.stringify(S.hslAdj || {}));
-  const total = S.photos.length;
-  setStatus(`⚡ Applying edits to all ${total} photos…`);
+  const total      = S.photos.length;
+  let   applied    = 0;
 
+  // Copy adjustment metadata only — no pixel processing needed
+  // The export/render pipeline applies adj on top of origData at display/export time
   for (let i = 0; i < total; i++) {
-    const photo = S.photos[i];
     if (i === S.activeIdx) continue;
-
-    const {data:src, width:w, height:h} = photo.origData;
-    const buf = new Uint8ClampedArray(src);
-
-    const savedAdj = S.adj; const savedFilter = S.filter; const savedHSL = S.hslAdj;
-    S.adj = adjSnap; S.filter = filterSnap; S.hslAdj = hslSnap;
-    applyTone(buf, w, h);
-    applyColor(buf, w, h);
-    applyDetail(buf, w, h);
-    if (filterSnap) applyFilterLUT(buf, w, h);
-    applyHSLPass(buf, w, h);
-    S.adj = savedAdj; S.filter = savedFilter; S.hslAdj = savedHSL;
-
+    const photo = S.photos[i];
     photo.adj    = {...adjSnap};
     photo.filter = filterSnap;
     photo.hslAdj = JSON.parse(JSON.stringify(hslSnap));
-    photo.origData = new ImageData(buf, w, h);
+    photo.thumb  = null; // invalidate cached thumbnail
 
     const badge = document.getElementById(`badge-${photo.id}`);
     if (badge) badge.classList.add('show');
-
-    await new Promise(r => setTimeout(r, 10));
-    setStatus(`⚡ Applying… ${i+1}/${total}`);
+    applied++;
   }
 
-  toast(`⚡ Applied to all ${total} photos!`);
+  toast(`⚡ Applied edits to ${applied} photos instantly!`);
   setStatus(`✅ Edits applied to all ${total} photos`);
 }
 
@@ -3044,83 +3144,155 @@ function exportImage() {
   }
 }
 
-async function exportAll() {
-  if (S.photos.length === 0) { toast('No photos to export'); return; }
+let _batchCancelled = false;
 
-  const mime    = {jpeg:'image/jpeg',png:'image/png',webp:'image/webp',print:'image/jpeg'}[expState.fmt] || 'image/jpeg';
-  const quality = expState.fmt === 'png' ? 1.0 : expState.fmt === 'webp' ? 0.92 : 0.97;
-  const ext     = expState.fmt === 'png' ? 'png' : expState.fmt === 'webp' ? 'webp' : 'jpg';
-  const sizes   = {hd:[1920,1080], '4k':[3840,2160], '8k':[7680,4320]};
+function cancelBatch() {
+  _batchCancelled = true;
+  document.getElementById('batchOverlay').classList.remove('show');
+  toast('Export cancelled');
+}
 
-  // Snapshot active state so we can restore after batch
-  const savedAdj    = {...S.adj};
-  const savedFilter = S.filter;
-  const savedHSL    = {...S.hslAdj};
-  const savedOrig   = S.origData;
+function _batchUI(show, title = '', sub = '') {
+  const el = document.getElementById('batchOverlay');
+  if (show) {
+    document.getElementById('batchTitle').textContent = title;
+    document.getElementById('batchSub').textContent   = sub;
+    document.getElementById('batchFile').textContent  = 'Preparing…';
+    document.getElementById('batchBar').style.width   = '0%';
+    document.getElementById('batchCount').textContent = '0 / 0';
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+function _batchProgress(current, total, filename) {
+  document.getElementById('batchFile').textContent  = filename;
+  document.getElementById('batchBar').style.width   = `${Math.round(current / total * 100)}%`;
+  document.getElementById('batchCount').textContent = `${current} / ${total}`;
+}
+
+async function _renderPhotoToCanvas(photo, q) {
+  await decodePhoto(photo);
+  const {data: src, width: w, height: h} = photo.origData;
+  const buf = new Uint8ClampedArray(src);
+
+  const savedAdj = S.adj, savedFilter = S.filter, savedHSL = S.hslAdj;
+  S.adj    = {...(photo.adj    || defaultAdj())};
+  S.filter = photo.filter || null;
+  S.hslAdj = photo.hslAdj ? JSON.parse(JSON.stringify(photo.hslAdj)) : {};
+  applyTone(buf, w, h);
+  applyColor(buf, w, h);
+  applyDetail(buf, w, h);
+  if (S.filter) applyFilterLUT(buf, w, h);
+  applyHSLPass(buf, w, h);
+  S.adj = savedAdj; S.filter = savedFilter; S.hslAdj = savedHSL;
+
+  const sc = document.createElement('canvas');
+  sc.width = w; sc.height = h;
+  sc.getContext('2d').putImageData(new ImageData(buf, w, h), 0, 0);
+
+  const sizes = {hd:[1920,1080], '4k':[3840,2160], '8k':[7680,4320]};
+  let outW = w, outH = h;
+  if (q !== 'original' && sizes[q]) {
+    const ar = w / h;
+    const [tw, th] = sizes[q];
+    if (ar >= 1) { outW = tw; outH = Math.round(tw / ar); }
+    else         { outH = th; outW = Math.round(th * ar); }
+  }
+
+  const ec = document.createElement('canvas');
+  ec.width = outW; ec.height = outH;
+  const ex = ec.getContext('2d');
+  ex.imageSmoothingEnabled = true;
+  ex.imageSmoothingQuality = 'high';
+  ex.drawImage(sc, 0, 0, outW, outH);
+  return ec;
+}
+
+async function exportAll(photosToExport) {
+  const list = photosToExport || S.photos;
+  if (list.length === 0) { toast('No photos to export'); return; }
+
+  // Use 8K as the default for batch export
+  const batchQ   = expState.q === '4k' ? '8k' : expState.q;
+  const mime     = {jpeg:'image/jpeg',png:'image/png',webp:'image/webp',print:'image/jpeg'}[expState.fmt] || 'image/jpeg';
+  const quality  = expState.fmt === 'png' ? 1.0 : expState.fmt === 'webp' ? 0.92 : 0.97;
+  const ext      = expState.fmt === 'png' ? 'png' : expState.fmt === 'webp' ? 'webp' : 'jpg';
+
+  _batchCancelled = false;
+  _batchUI(true, `📦 Exporting ${list.length} Photos`, `Format: ${expState.fmt.toUpperCase()} · Quality: ${batchQ.toUpperCase()}`);
+
+  // Try File System Access API (Chrome 86+) for direct folder save
+  let dirHandle = null;
+  if ('showDirectoryPicker' in window) {
+    try {
+      dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    } catch {
+      // user cancelled picker or API unavailable — fall back to sequential download
+    }
+  }
 
   let exported = 0;
-  for (let i = 0; i < S.photos.length; i++) {
-    const photo = S.photos[i];
-    setStatus(`📦 Exporting ${i+1}/${S.photos.length}: ${photo.name}…`);
+  const CHUNK = 4; // process N photos before yielding to keep UI alive
+
+  for (let i = 0; i < list.length; i++) {
+    if (_batchCancelled) break;
+    const photo = list[i];
+    _batchProgress(i + 1, list.length, photo.name);
+    setStatus(`📦 Exporting ${i+1}/${list.length}: ${photo.name}…`);
+
     try {
-      const {data:src, width:w, height:h} = photo.origData;
-      const buf = new Uint8ClampedArray(src);
+      const ec = await _renderPhotoToCanvas(photo, batchQ);
+      const baseName = photo.name.replace(/\.[^.]+$/, '');
+      const fileName = `${baseName}_${batchQ}.${ext}`;
 
-      // Apply this photo's stored adjustments through the full pipeline
-      S.adj    = {...(photo.adj || defaultAdj())};
-      S.filter = photo.filter || null;
-      S.hslAdj = photo.hslAdj ? {...photo.hslAdj} : {};
-      applyTone(buf, w, h);
-      applyColor(buf, w, h);
-      applyDetail(buf, w, h);
-      if (S.filter) applyFilterLUT(buf, w, h);
-      applyHSLPass(buf, w, h);
-
-      // Build source canvas from processed pixels
-      const sc = document.createElement('canvas');
-      sc.width = w; sc.height = h;
-      sc.getContext('2d').putImageData(new ImageData(buf, w, h), 0, 0);
-
-      // Scale to selected export resolution
-      let outW = w, outH = h;
-      if (expState.q !== 'original' && sizes[expState.q]) {
-        const ar = w / h;
-        const [tw, th2] = sizes[expState.q];
-        if (ar >= 1) { outW = tw; outH = Math.round(tw / ar); }
-        else         { outH = th2; outW = Math.round(th2 * ar); }
+      if (dirHandle) {
+        // Write directly to the chosen folder
+        const blob = await new Promise(r => ec.toBlob(r, mime, quality));
+        const fh   = await dirHandle.getFileHandle(fileName, {create: true});
+        const ws   = await fh.createWritable();
+        await ws.write(blob);
+        await ws.close();
+      } else {
+        // Fall back: trigger browser download
+        const dataURL = ec.toDataURL(mime, quality);
+        if (dataURL.length > 1000) {
+          const link = document.createElement('a');
+          link.download = fileName;
+          link.href = dataURL;
+          link.click();
+          // Stagger downloads so the browser doesn't block them
+          await new Promise(r => setTimeout(r, 280));
+        }
       }
-
-      const ec = document.createElement('canvas');
-      ec.width = outW; ec.height = outH;
-      const ex = ec.getContext('2d');
-      ex.imageSmoothingEnabled = true;
-      ex.imageSmoothingQuality = 'high';
-      ex.drawImage(sc, 0, 0, outW, outH);
-
-      const dataURL = ec.toDataURL(mime, quality);
-      if (dataURL.length > 1000) {
-        const baseName = photo.name.replace(/\.[^.]+$/, '');
-        const link = document.createElement('a');
-        link.download = `${baseName}_${expState.q}.${ext}`;
-        link.href = dataURL;
-        link.click();
-        exported++;
-      }
+      exported++;
     } catch(err) {
       console.warn(`Export failed for ${photo.name}:`, err);
     }
-    await new Promise(r => setTimeout(r, 300));
+
+    // Yield to browser every CHUNK photos to keep UI responsive
+    if ((i + 1) % CHUNK === 0) await new Promise(r => setTimeout(r, 0));
   }
 
-  // Restore state and re-render active photo
-  S.adj    = savedAdj;
-  S.filter = savedFilter;
-  S.hslAdj = savedHSL;
-  S.origData = savedOrig;
+  _batchUI(false);
   scheduleRender();
 
-  toast(`📦 Exported ${exported}/${S.photos.length} photos at ${expState.q.toUpperCase()}`);
-  setStatus(`✅ Batch export complete — ${exported} photos saved`);
+  const dest = dirHandle ? 'to selected folder' : 'to Downloads';
+  toast(`📦 Exported ${exported}/${list.length} photos ${dest} at ${batchQ.toUpperCase()}`);
+  setStatus(`✅ Batch export complete — ${exported} photos saved at ${batchQ.toUpperCase()}`);
+}
+
+async function exportSelected() {
+  const selected = S.photos.filter((_, i) => {
+    const el = document.getElementById(`thumb-${S.photos[i].id}`);
+    return el && el.classList.contains('selected');
+  });
+  if (selected.length === 0) {
+    toast('No photos selected — click thumbnails to select them first');
+    return;
+  }
+  await exportAll(selected);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -3190,6 +3362,7 @@ function closeAlbum() { closeModal('albumOverlay'); }
 /* Generate a downscaled (≤400px wide) thumbnail for a photo with its edits
    applied. Works on a small canvas so it's ~100× faster than full-res. */
 function generatePhotoThumb(photo) {
+  if (!photo.origData) return photo.dataURL; // not decoded yet — show raw preview
   const {width:fw, height:fh} = photo.origData;
   const scale = Math.min(1, 400 / Math.max(fw, 1));
   const tw = Math.max(1, Math.round(fw * scale));
