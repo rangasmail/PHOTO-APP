@@ -3,7 +3,10 @@
     "allow": [
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(sed -i '/const c = hsv2rgb\\(0, 0, 0\\); void c;/d' c_app.js)",
+      "Bash(sed -i 's|const buf = new Uint8ClampedArray\\(W \\\\* H \\\\* 4\\); gl.bindFramebuffer\\(gl.FRAMEBUFFER, tgt.fbo\\); gl.readPixels\\(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, buf\\);|const buf = new Uint8Array\\(W * H * 4\\); gl.bindFramebuffer\\(gl.FRAMEBUFFER, tgt.fbo\\); gl.readPixels\\(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, buf\\);|; s|c2.putImageData\\(new ImageData\\(buf, W, H\\), x0 - ml|c2.putImageData\\(new ImageData\\(new Uint8ClampedArray\\(buf.buffer\\), W, H\\), x0 - ml|' c_app.js)",
+      "Bash(sed -i \"s|^buildPanels\\(\\);|buildPanels\\(\\); \\\\$\\('#gl'\\).style.display = 'none';|\" c_app.js)"
     ]
   }
 }
