@@ -234,14 +234,28 @@ canvas#curves{width:100%;aspect-ratio:1;background:#0f1013;border:1px solid var(
       <div class="btns"><button class="btn sm" id="bBake" title="Copy the look's values into the sliders so you can fine-tune them">Bake look into sliders</button><button class="btn sm" id="bSaveLook" title="Save this photo's colour & tone edits as a reusable look (crop/rotation are not included)">★ Save edits as new look</button></div>
     </div>
     <div class="sec">
-      <h3>Batch</h3>
+      <h3>SriRangA</h3>
+      <div class="btns"><button class="btn pri wide" id="bSaveSriRangA">Save active photo as SriRangA</button></div>
+      <p class="note" id="batchInfo">Save a fully edited photo as your reusable SriRangA reference.</p>
+      <div class="btns">
+        <button class="btn wide" id="bSriRangAAll">Apply SriRangA to all other photos</button>
+        <button class="btn wide" id="bSriRangASel">Apply SriRangA to selected</button>
+      </div>
       <div class="btns">
         <button class="btn" id="bCopy">Copy edits</button><button class="btn" id="bPaste">Paste edits</button>
-        <button class="btn wide" id="bSyncAll">Apply these edits to ALL photos</button>
-        <button class="btn wide" id="bSyncSel">Apply to selected (Ctrl+click thumbnails)</button>
         <button class="btn wide" id="bResetAll">Reset this photo</button>
       </div>
-      <p class="note">Crop and rotation stay per‑photo. Everything else is copied.</p>
+      <div class="btns"><button class="btn sm" id="bSelectAll">Select all other photos</button><button class="btn sm" id="bClearSel">Clear selection</button></div>
+      <h3>Edits to apply</h3>
+      <label class="chk"><input type="checkbox" id="copyTone" checked> Exposure &amp; tone</label>
+      <label class="chk"><input type="checkbox" id="copyColor" checked> Color, white balance &amp; HSL</label>
+      <label class="chk"><input type="checkbox" id="copyDetail" checked> Detail &amp; texture</label>
+      <label class="chk"><input type="checkbox" id="copyEffects" checked> Light, effects &amp; relight</label>
+      <label class="chk"><input type="checkbox" id="copyCurves" checked> Tone curves</label>
+      <label class="chk"><input type="checkbox" id="copyLook" checked> Applied look</label>
+      <label class="chk"><input type="checkbox" id="copyLocal" checked> Include masks and spot repairs</label>
+      <label class="chk"><input type="checkbox" id="copyGeo"> Also copy crop and rotation</label>
+      <p class="note">Choose one category for a partial edit or leave all checked for a full recipe. Single-photo Copy/Paste uses the same selection. Each destination gets its own undo step.</p>
     </div>
   </div>
 
@@ -1194,6 +1208,7 @@ const TABS = {
 };
 
 /* ─────────────── Pro Looks (parameter sets — subject is never altered) ─────────────── */
+const filmCurve = rgb => ({rgb, r:[[0,0],[1,1]], g:[[0,0],[1,1]], b:[[0,0],[1,1]]});
 const LOOKS = {
   hollywood:{name:'Hollywood Portrait', desc:'Warm key · cool shadows · teal/orange', p:{contrast:16, highlights:-18, shadows:8, blacks:-6, whites:4, clarity:12, texture:6, vibrance:8, saturation:-4, temperature:3, vignette:14, grain:14, bloom:6, gShH:205, gShS:24, gMdH:35, gMdS:6, gHiH:38, gHiS:22, hsl:[[0,0,0],[-3,-4,5],[0,0,0],[0,-14,-6],[-6,8,0],[-8,-6,-6],[0,0,0],[0,0,0]]}},
   golden:{name:'Golden Hour', desc:'Directional warm sun · soft roll‑off', p:{exposure:.1, temperature:20, tint:2, highlights:-28, shadows:16, contrast:10, whites:-4, dehaze:6, clarity:6, vibrance:6, bloom:10, vignette:10, gShH:22, gShS:8, gMdH:30, gMdS:8, gHiH:40, gHiS:32, rlAmt:22, rlAngle:0, rlWarm:70, rlFall:45, rlFill:12, rlRim:10, hsl:[[0,0,0],[0,6,8],[0,6,4],[0,0,0],[0,0,0],[-4,-10,-10],[0,0,0],[0,0,0]]}},
@@ -1204,13 +1219,17 @@ const LOOKS = {
   moody:{name:'Moody Dark', desc:'Deep shadows · cool · soft bloom', p:{exposure:-.35, contrast:26, highlights:-24, shadows:-4, blacks:-14, whites:-4, temperature:-10, saturation:-12, clarity:8, bloom:22, vignette:30, grain:14, fade:3, gShH:215, gShS:26, gHiH:200, gHiS:8}},
   studio:{name:'Clean Studio', desc:'Neutral · soft skin texture · no vignette', autoWB:true, p:{exposure:.05, contrast:-2, highlights:-8, shadows:10, whites:6, texture:-6, skinSmooth:18, saturation:-2, vignette:-100, grain:-100}},
   landscape:{name:'Travel Landscape', desc:'High dynamic range · deep blues · crisp', p:{contrast:16, highlights:-30, shadows:26, whites:8, blacks:-6, dehaze:20, clarity:18, texture:10, vibrance:26, saturation:4, sharpen:35, vignette:8, hsl:[[0,0,0],[0,0,0],[0,4,0],[0,8,-2],[0,10,-4],[0,18,-14],[0,0,0],[0,0,0]]}},
-  cinematic:{name:'Cinematic', desc:'Film contrast · teal/orange grade · soft bloom · grain', p:{contrast:22, highlights:-22, shadows:6, blacks:-10, whites:2, temperature:4, saturation:-6, vibrance:10, clarity:10, texture:4, dehaze:4, bloom:14, vignette:22, grain:12, fade:3, gShH:200, gShS:28, gMdH:30, gMdS:6, gHiH:38, gHiS:24, hsl:[[0,0,0],[-4,-6,6],[0,0,0],[2,-10,-4],[-8,12,0],[-6,-4,-6],[0,0,0],[0,0,0]]}},
+  cinematic:{name:'Cinematic', desc:'Filmic toe · teal shadows · warm highlights · soft bloom', curves:filmCurve([[0,.012],[.18,.15],[.5,.5],[.8,.86],[1,.988]]), p:{contrast:22, highlights:-22, shadows:6, blacks:-10, whites:2, temperature:4, saturation:-6, vibrance:10, clarity:10, texture:4, dehaze:4, bloom:14, vignette:22, grain:12, fade:3, gShH:200, gShS:28, gMdH:30, gMdS:6, gHiH:38, gHiS:24, hsl:[[0,0,0],[-4,-6,6],[0,0,0],[2,-10,-4],[-8,12,0],[-6,-4,-6],[0,0,0],[0,0,0]]}},
+  bleach:{name:'Bleach Bypass', desc:'Harder contrast · restrained colour · silver highlights', curves:filmCurve([[0,.008],[.16,.09],[.48,.46],[.82,.9],[1,.995]]), p:{contrast:28, highlights:-26, shadows:-6, blacks:-12, whites:8, saturation:-34, vibrance:-8, clarity:16, texture:12, sharpen:16, grain:8, vignette:12, gShH:205, gShS:12, gHiH:42, gHiS:8}},
+  nightfilm:{name:'Night Exterior', desc:'Cool shadow detail · warm practical lights · fine grain', curves:filmCurve([[0,.006],[.2,.12],[.5,.43],[.8,.82],[1,.99]]), p:{exposure:-.25, contrast:16, highlights:-30, shadows:14, blacks:-10, whites:-4, temperature:-8, saturation:-10, vibrance:5, dehaze:6, clarity:5, grain:10, vignette:18, gShH:218, gShS:22, gMdH:205, gMdS:5, gHiH:36, gHiS:20}},
+  vintagefilm:{name:'Vintage Film', desc:'Lifted blacks · warm paper · gentle halation and grain', curves:filmCurve([[0,.045],[.18,.22],[.5,.52],[.82,.84],[1,.965]]), p:{contrast:-8, highlights:-16, shadows:8, blacks:12, whites:-4, temperature:7, tint:2, saturation:-12, vibrance:4, fade:8, grain:22, bloom:7, vignette:10, gShH:28, gShS:7, gHiH:38, gHiS:14, hsl:[[0,0,0],[0,4,5],[-3,-6,2],[-4,-16,-4],[0,0,0],[0,-8,-4],[0,0,0],[0,0,0]]}},
   truelife:{name:'True‑to‑Life', desc:'Correct exposure · realistic skin · accurate colors', autoWB:true, p:{contrast:4, highlights:-12, shadows:10, whites:2, blacks:-2, vibrance:4, saturation:0, clarity:4, texture:4, sharpen:14, denoise:10, chromaDenoise:15, skinSmooth:4, vignette:-100, grain:-100}},
   beauty:{name:'Natural Beauty', desc:'Gentle even skin · warm · soft glow', p:{temperature:6, exposure:.1, highlights:-14, shadows:10, contrast:-4, vibrance:6, skinSmooth:32, clarity:-6, bloom:12, gHiH:40, gHiS:10, hsl:[[0,0,4],[0,0,6],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]}}
 };
 
 /* User looks: saved from a photo's edits, same shape as LOOKS (+ optional curves), persisted in localStorage */
 const USER_LOOKS_KEY = 'prophoto.userLooks.v1';
+const SRIRANGA_KEY = 'prophoto.sriRangA.v1';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 function loadUserLooks(){
   let list = [];
@@ -1223,6 +1242,16 @@ function saveUserLooks(){
   try { localStorage.setItem(USER_LOOKS_KEY, JSON.stringify(list)); return true; } catch (e) { return false; }
 }
 loadUserLooks();
+function loadSriRangA(){
+  try {
+    const profile = JSON.parse(localStorage.getItem(SRIRANGA_KEY) || 'null');
+    return profile && profile.doc && profile.source ? profile : null;
+  } catch (e) { return null; }
+}
+function saveSriRangAProfile(profile){
+  try { localStorage.setItem(SRIRANGA_KEY, JSON.stringify(profile)); return true; }
+  catch (e) { return false; }
+}
 
 /* ─────────────── Curves ─────────────── */
 const defaultCurves = () => ({rgb:[[0,0],[1,1]], r:[[0,0],[1,1]], g:[[0,0],[1,1]], b:[[0,0],[1,1]]});
@@ -1308,7 +1337,7 @@ const isEdited = d => JSON.stringify(d) !== JSON.stringify(NEUTRAL_DOC);
 /* ─────────────── App state ─────────────── */
 const state = {
   photos:[], active:-1, sel:new Set(), zoom:1, pan:{x:0,y:0}, tab:'looks', clip:false, compare:false,
-  crop:{active:false, rect:null, ar:null}, hslSel:0, curveCh:'rgb', bases:null, clipboard:null, looksKey:'', lookToken:0,
+  crop:{active:false, rect:null, ar:null}, hslSel:0, curveCh:'rgb', bases:null, clipboard:null, sriRangA:loadSriRangA(), looksKey:'', lookToken:0,
   xSize:'orig', xFmt:'jpeg', xQ:95, xSharp:12, xRange:'cur', mode:'photo', maskSel:null, brushErase:false, spotSel:null
 };
 const cur = () => state.mode === 'video' ? vSelClip() : state.photos[state.active];
@@ -1331,51 +1360,42 @@ function busy(on, txt){ $('#busy').classList.toggle('on', on); if (txt) $('#busy
 /* ─────────────── Loading photos ─────────────── */
 const IMG_RE = /\.(jpe?g|png|webp|avif|gif|bmp|heic|heif|arw)$/i;
 const RAW_RE = /\.arw$/i;
-const RAW_WORKER_URL = 'https://cdn.jsdelivr.net/npm/libraw-wasm@1.6.0/dist/worker.js';
-let rawWorkerPromise, rawRequestId = 0;
-const rawRequests = new Map();
-function getRawWorker(){
-  if (rawWorkerPromise) return rawWorkerPromise;
+const RAW_MODULE_URL = './vendor/libraw-wasm/index.js';
+const RAW_DECODE_TIMEOUT = 180000;
+let rawDecoderPromise;
+function getRawDecoder(){
+  if (rawDecoderPromise) return rawDecoderPromise;
   if (!globalThis.crossOriginIsolated) throw new Error('For ARW, run serve-photo-app.ps1 and open http://127.0.0.1:8765/');
-  const source = `
-    const NativeWorker = Worker;
-    self.Worker = class extends NativeWorker {
-      constructor(script, options){
-        const blobUrl = URL.createObjectURL(new Blob([\`import \${JSON.stringify(script)};\`], {type:'text/javascript'}));
-        super(blobUrl, options);
-        this.addEventListener('message', () => URL.revokeObjectURL(blobUrl), {once:true});
-        this.addEventListener('error', () => URL.revokeObjectURL(blobUrl), {once:true});
-      }
-    };
-    import(${JSON.stringify(RAW_WORKER_URL)}).then(() => self.postMessage({ready:true}));
-  `;
-  const url = URL.createObjectURL(new Blob([source], {type:'text/javascript'}));
-  const worker = new Worker(url, {type:'module'});
-  rawWorkerPromise = new Promise((resolve, reject) => {
-    worker.onmessage = e => {
-      if (e.data && e.data.ready) { URL.revokeObjectURL(url); resolve(worker); return; }
-      const pending = rawRequests.get(e.data && e.data.id);
-      if (!pending) return;
-      rawRequests.delete(e.data.id);
-      e.data.error ? pending.reject(new Error(e.data.error)) : pending.resolve(e.data.out);
-    };
-    worker.onerror = e => {
-      URL.revokeObjectURL(url); worker.terminate(); rawWorkerPromise = null;
-      reject(new Error(e.message || 'RAW decoder failed to load'));
-    };
+  rawDecoderPromise = import(RAW_MODULE_URL).then(({default:LibRaw}) => {
+    const decoder = new LibRaw();
+    decoder.worker.addEventListener('error', e => {
+      const error = new Error(e.message || 'RAW decoder worker failed');
+      for (const pending of decoder.pending.values()) pending.reject(error);
+      decoder.pending.clear(); decoder.dispose(); rawDecoderPromise = null;
+    });
+    return decoder;
+  }).catch(e => {
+    rawDecoderPromise = null;
+    throw new Error('RAW decoder failed to load: ' + e.message);
   });
-  return rawWorkerPromise;
+  return rawDecoderPromise;
+}
+async function rawCall(decoder, fn, args){
+  let timer;
+  try {
+    return await Promise.race([
+      decoder[fn](...args),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('RAW decoding timed out after 3 minutes')), RAW_DECODE_TIMEOUT); })
+    ]);
+  } catch (e) {
+    if (e.message.includes('timed out')) { decoder.dispose(); rawDecoderPromise = null; }
+    throw e;
+  } finally { clearTimeout(timer); }
 }
 async function decodeRawFile(file){
-  const worker = await getRawWorker(), bytes = new Uint8Array(await file.arrayBuffer()), id = rawRequestId++;
-  await new Promise((resolve, reject) => {
-    rawRequests.set(id, {resolve, reject});
-    worker.postMessage({id, fn:'open', args:[bytes, {useCameraWb:true, useCameraMatrix:3, outputColor:1, outputBps:8, userQual:11, noAutoBright:true}]}, [bytes.buffer]);
-  });
-  const image = await new Promise((resolve, reject) => {
-    rawRequests.set(id, {resolve, reject});
-    worker.postMessage({id, fn:'imageData', args:[]});
-  });
+  const decoder = await getRawDecoder(), bytes = new Uint8Array(await file.arrayBuffer());
+  await rawCall(decoder, 'open', [bytes, {useCameraWb:true, useCameraMatrix:3, outputColor:1, outputBps:8, userQual:11, noAutoBright:true}]);
+  const image = await rawCall(decoder, 'imageData', []);
   if (!image || !image.width || !image.height || !image.data || image.colors < 3) throw new Error('RAW decoder returned invalid image data');
   const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
   const context = canvas.getContext('2d'), pixels = context.createImageData(image.width, image.height), channels = image.colors;
@@ -1398,16 +1418,20 @@ async function addFiles(files){
   let first = state.photos.length, ok = 0;
   for (const f of list) {
     try {
-      const source = RAW_RE.test(f.name) ? await decodeRawFile(f) : f;
+      const isRaw = RAW_RE.test(f.name);
+      if (isRaw) { setMsg('Developing RAW ' + f.name + '…'); busy(true, 'Developing RAW ' + f.name + '…'); }
+      const source = isRaw ? await decodeRawFile(f) : f;
+      if (isRaw) busy(false);
       const small = await createImageBitmap(source, {imageOrientation:'from-image', resizeWidth:480, resizeQuality:'medium'});
       const ph = {id:uid++, name:f.name, file:source, small, doc:newDoc(), hist:[], hIdx:-1, entry:null, thumb:null};
       ph.hist = [JSON.stringify(ph.doc)]; ph.hIdx = 0;
       state.photos.push(ph); addThumb(ph); ok++;
       if (ok === 1) { await selectPhoto(first); }
-    } catch (e) { console.warn('Import failed', f.name, e); toast(RAW_RE.test(f.name) ? 'Could not develop ' + f.name + ': ' + e.message : 'Could not read ' + f.name + ' (format not supported by this browser)'); }
+    } catch (e) { busy(false); console.warn('Import failed', f.name, e); toast(RAW_RE.test(f.name) ? 'Could not develop ' + f.name + ': ' + e.message : 'Could not read ' + f.name + ' (format not supported by this browser)'); }
     if (ok % 4 === 0) await tick();
   }
   setMsg(ok + ' photo' + (ok !== 1 ? 's' : '') + ' loaded');
+  updateBatchInfo();
   if (ok && ALB.open) albAddImported(state.photos.slice(first));
   if (ok) notify(String(ok), ok === 1 ? 'photo opened' : 'photos opened', state.photos.length + ' in total in this session' + (ok < list.length ? ' · ' + (list.length - ok) + ' could not be read' : ''), 4000);
 }
@@ -1442,7 +1466,7 @@ function addThumb(ph){
   el.addEventListener('click', e => {
     if (e.target.classList.contains('x')) return removePhoto(ph);
     const i = state.photos.indexOf(ph);
-    if (e.ctrlKey || e.metaKey) { state.sel.has(ph.id) ? state.sel.delete(ph.id) : state.sel.add(ph.id); el.classList.toggle('sel', state.sel.has(ph.id)); }
+    if (e.ctrlKey || e.metaKey) { state.sel.has(ph.id) ? state.sel.delete(ph.id) : state.sel.add(ph.id); el.classList.toggle('sel', state.sel.has(ph.id)); updateBatchInfo(); }
     else selectPhoto(i);
   });
   $('#strip').appendChild(el);
@@ -1456,9 +1480,10 @@ function removePhoto(ph){
   const i = state.photos.indexOf(ph); if (i < 0) return;
   freeEntry(ph.entry); ph.thumbEl.remove(); state.photos.splice(i, 1); state.sel.delete(ph.id);
   (ph.doc.local || []).forEach(L => freeMaskRuntime(L.id)); albForget(ph.id);
-  if (!state.photos.length) { state.active = -1; state.bases = null; showEmpty(); return; }
+  if (!state.photos.length) { state.active = -1; state.bases = null; showEmpty(); updateBatchInfo(); return; }
   if (i === state.active) { state.active = -1; selectPhoto(Math.min(i, state.photos.length - 1)); }
   else if (i < state.active) state.active--;
+  updateBatchInfo();
 }
 $('#bClear').onclick = () => {
   const n = state.photos.length; if (!n) { toast('No photos to clear'); return; }
@@ -1487,6 +1512,7 @@ async function selectPhoto(i){
   setMsg(ph.name + ' — ' + ph.native[0] + '×' + ph.native[1]);
   if (state.tab === 'looks') scheduleLookThumbs();
   if (state.tab === 'mask') buildMaskPanel();
+  updateBatchInfo();
 }
 
 /* ─────────────── View & render loop ─────────────── */
@@ -2259,18 +2285,91 @@ scrollEl.addEventListener('input', e => {
 });
 
 /* ─────────────── Batch / clipboard ─────────────── */
-function stripGeo(doc){ const c = clone(doc); delete c.geo; return c; }
-$('#bCopy').onclick = () => { const ph = cur(); if (!ph) return; state.clipboard = stripGeo(ph.doc); toast('Edits copied'); };
-function pasteInto(ph, src){ const g = ph.doc.geo, s = clone(src); (s.local || []).forEach(L => L.id = uid++); (s.spots || []).forEach(sp => sp.id = uid++); ph.doc = {...s, geo:g}; }
-$('#bPaste').onclick = () => { const ph = cur(); if (!ph || !state.clipboard) { toast('Nothing copied yet'); return; } pasteInto(ph, state.clipboard); lutKey = ''; syncUI(); requestRender(); commit(); };
-function syncTo(list){
-  const ph = cur(); if (!ph) return; const src = stripGeo(ph.doc); let n = 0;
-  for (const o of list) { if (o === ph) continue; pasteInto(o, src); o.hist.push(JSON.stringify(o.doc)); o.hIdx = o.hist.length - 1; o.thumbEl.classList.toggle('edited', isEdited(o.doc)); scheduleThumbRefresh(o); n++; }
-  toast('Applied to ' + n + ' photo' + (n !== 1 ? 's' : ''));
-  notify('✓ ' + n, 'photo' + (n !== 1 ? 's' : '') + ' updated', 'Edits applied successfully to ' + n + ' photo' + (n !== 1 ? 's' : '') + '.');
+function batchOptions(){
+  const options = {tone:$('#copyTone').checked, color:$('#copyColor').checked, detail:$('#copyDetail').checked, effects:$('#copyEffects').checked, curves:$('#copyCurves').checked, look:$('#copyLook').checked, local:$('#copyLocal').checked, geo:$('#copyGeo').checked};
+  options.hasAny = Object.values(options).some(Boolean);
+  return options;
 }
-$('#bSyncAll').onclick = () => syncTo(siblings());
-$('#bSyncSel').onclick = () => { const l = state.photos.filter(p => state.sel.has(p.id)); l.length ? syncTo(l) : toast('Ctrl+click thumbnails to select photos first'); };
+const COPY_ADJ = {
+  tone:['exposure', 'contrast', 'highlights', 'shadows', 'whites', 'blacks'],
+  color:['temperature', 'tint', 'vibrance', 'saturation', 'gShH', 'gShS', 'gMdH', 'gMdS', 'gHiH', 'gHiS', 'gBal'],
+  detail:['dehaze', 'clarity', 'texture', 'sharpen', 'denoise', 'chromaDenoise', 'skinSmooth'],
+  effects:['bloom', 'vignette', 'vignetteMid', 'fade', 'grain', 'rlAmt', 'rlAngle', 'rlWarm', 'rlFall', 'rlFill', 'rlRim']
+};
+function recordPhotoHistory(ph){
+  const serialized = JSON.stringify(ph.doc);
+  if (serialized === ph.hist[ph.hIdx]) return false;
+  ph.hist = ph.hist.slice(0, ph.hIdx + 1); ph.hist.push(serialized);
+  if (ph.hist.length > 150) ph.hist.shift();
+  ph.hIdx = ph.hist.length - 1;
+  ph.thumbEl.classList.toggle('edited', isEdited(ph.doc)); scheduleThumbRefresh(ph);
+  if (ph === cur()) updateHistBtns();
+  return true;
+}
+function applyCopiedEdits(ph, source, options){
+  if (!options.hasAny) return false;
+  const next = clone(ph.doc);
+  for (const group of ['tone', 'color', 'detail', 'effects']) if (options[group]) for (const key of COPY_ADJ[group]) next.adj[key] = source.adj[key];
+  if (options.color) { next.hsl = clone(source.hsl); next.flags = clone(source.flags); }
+  if (options.curves) next.curves = clone(source.curves);
+  if (options.look) next.look = clone(source.look);
+  if (options.local) {
+    (ph.doc.local || []).forEach(L => freeMaskRuntime(L.id));
+    next.local = clone(source.local || []); next.spots = clone(source.spots || []);
+    next.local.forEach(L => L.id = uid++); next.spots.forEach(sp => sp.id = uid++);
+  }
+  if (options.geo) next.geo = clone(source.geo);
+  if (JSON.stringify(next) === JSON.stringify(ph.doc)) return false;
+  ph.doc = next;
+  if (ph === cur()) {
+    lutKey = ''; syncUI(); requestRender();
+    if (options.local && state.tab === 'mask') { state.maskSel = null; state.spotSel = null; buildMaskPanel(); }
+  }
+  return recordPhotoHistory(ph);
+}
+function updateBatchInfo(){
+  const info = $('#batchInfo'); if (!info) return;
+  const profile = state.sriRangA, sourceKey = profile && profile.source.key;
+  const targets = state.photos.filter(ph => sourceKey && photoEditSignature(ph) !== sourceKey);
+  const selected = targets.filter(ph => state.sel.has(ph.id));
+  const options = batchOptions(), groups = ['tone', 'color', 'detail', 'effects', 'curves', 'look', 'local', 'geo'].filter(k => options[k]).length;
+  info.textContent = (profile ? 'SriRangA from ' + profile.source.name + ' is saved. ' : 'No SriRangA reference saved yet. ') + targets.length + ' other photo' + (targets.length === 1 ? '' : 's') + ' available. ' + groups + ' edit group' + (groups === 1 ? '' : 's') + ' selected.';
+  $('#bSaveSriRangA').disabled = state.mode !== 'photo' || !cur();
+  $('#bSriRangAAll').disabled = !profile || !targets.length || !options.hasAny;
+  $('#bSriRangASel').disabled = !profile || !selected.length || !options.hasAny;
+}
+function photoEditSignature(ph){
+  const small = ph.small || {}, native = ph.native || [];
+  return [ph.name, small.width || native[0] || 0, small.height || native[1] || 0, ph.file && ph.file.size || 0].join('|');
+}
+$$('#copyTone,#copyColor,#copyDetail,#copyEffects,#copyCurves,#copyLook,#copyLocal,#copyGeo').forEach(el => el.addEventListener('change', updateBatchInfo));
+$('#bSaveSriRangA').onclick = () => {
+  const ph = cur(); if (!ph || state.mode !== 'photo') { toast('Open and fully edit a photo first'); return; }
+  const profile = {version:1, source:{name:ph.name, key:photoEditSignature(ph)}, doc:clone(ph.doc), savedAt:Date.now()};
+  state.sriRangA = profile;
+  const saved = saveSriRangAProfile(profile); updateBatchInfo();
+  toast(saved ? 'SriRangA reference saved for future sessions' : 'SriRangA saved for this session; browser storage is unavailable');
+};
+$('#bCopy').onclick = () => { const ph = cur(); if (!ph) return; state.clipboard = clone(ph.doc); toast('All edits copied from ' + ph.name); };
+$('#bPaste').onclick = () => {
+  const ph = cur(); if (!ph || !state.clipboard) { toast('Copy edits from a photo first'); return; }
+  if (applyCopiedEdits(ph, state.clipboard, batchOptions())) toast('Edits pasted onto ' + ph.name);
+  else toast('Those edits already match this photo');
+};
+function applySriRangA(list){
+  const profile = state.sriRangA;
+  if (!profile) { toast('Save an edited photo as the SriRangA reference first'); return; }
+  const targets = list.filter(ph => photoEditSignature(ph) !== profile.source.key), options = batchOptions(); let n = 0;
+  for (const target of targets) if (applyCopiedEdits(target, profile.doc, options)) n++;
+  if (!n) { toast('No target photos needed these edits'); return; }
+  toast('SriRangA applied to ' + n + ' photo' + (n !== 1 ? 's' : ''));
+  notify('✓ ' + n, 'photo' + (n !== 1 ? 's' : '') + ' updated', 'Each photo keeps its own undo history.');
+  updateBatchInfo();
+}
+$('#bSriRangAAll').onclick = () => applySriRangA(state.photos);
+$('#bSriRangASel').onclick = () => applySriRangA(state.photos.filter(p => state.sel.has(p.id)));
+$('#bSelectAll').onclick = () => { state.sel = new Set(state.photos.filter(p => p !== cur()).map(p => p.id)); $$('.th').forEach(t => t.classList.toggle('sel', state.sel.has(+t.dataset.id))); updateBatchInfo(); };
+$('#bClearSel').onclick = () => { state.sel.clear(); $$('.th').forEach(t => t.classList.remove('sel')); updateBatchInfo(); };
 $('#bResetAll').onclick = () => { const ph = cur(); if (!ph) return; const g = ph.doc.geo; ph.doc = newDoc(); ph.doc.geo = g; lutKey = ''; syncUI(); requestRender(); commit(); };
 
 /* ─────────────── Export ─────────────── */
@@ -2451,7 +2550,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => { if (e.key === '\\' && state.compare) { state.compare = false; requestRender(); } });
 
 /* ─────────────── Init ─────────────── */
-buildPanels(); $('#gl').style.display = 'none';
+buildPanels(); updateBatchInfo(); $('#gl').style.display = 'none';
 $('#xQ').style.setProperty('--a', '0%'); paintSlider($('#xQ'));
 $('#stGpu').title = 'WebGL2 · ' + (HALF ? '16‑bit float pipeline' : '8‑bit fallback pipeline') + ' · max texture ' + MAXTEX;
 setMsg('Ready — open photos or drop a folder. GPU: ' + (HALF ? '16-bit float pipeline' : '8-bit fallback'));
@@ -3321,6 +3420,29 @@ function vClipSourceAtElapsed(c, elapsed){
   return c.out;
 }
 const vClipSpeedAtElapsed = (c, elapsed) => vSpeedAtProgress(c, (vClipSourceAtElapsed(c, elapsed) - c.in) / Math.max(.001, c.out - c.in));
+function estimateVideoShift(previous, current, width, height){
+  const radius = 6, stride = 3; let best = Infinity, zero = Infinity, bestX = 0, bestY = 0;
+  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
+    let score = 0, samples = 0;
+    for (let y = radius + 2; y < height - radius - 2; y += stride) for (let x = radius + 2; x < width - radius - 2; x += stride) {
+      score += Math.abs(previous[y * width + x] - current[(y + dy) * width + x + dx]); samples++;
+    }
+    score /= Math.max(1, samples);
+    if (dx === 0 && dy === 0) zero = score;
+    if (score < best) { best = score; bestX = dx; bestY = dy; }
+  }
+  return zero > 1 && best < zero * .995 ? {x:bestX, y:bestY} : {x:0, y:0};
+}
+function stabilizationAt(c, time){
+  const points = c.stab && c.stab.points || [];
+  if (!points.length) return {dx:0, dy:0};
+  if (time <= points[0].t) return points[0];
+  const last = points[points.length - 1]; if (time >= last.t) return last;
+  let lo = 0, hi = points.length - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (points[mid].t <= time) lo = mid; else hi = mid; }
+  const a = points[lo], b = points[hi], f = (time - a.t) / Math.max(1e-6, b.t - a.t);
+  return {dx:a.dx + (b.dx - a.dx) * f, dy:a.dy + (b.dy - a.dy) * f};
+}
 function vSpeedSlice(c, from, to){
   const points = vSpeedPoints(c), out = [{at:0, speed:vSpeedAtProgress(c, from)}];
   points.forEach(p => { if (p.at > from + 1e-5 && p.at < to - 1e-5) out.push({at:(p.at - from) / (to - from), speed:p.speed}); });
@@ -3331,7 +3453,7 @@ const clipLen = c => {
   const span = Math.max(.001, c.out - c.in), points = vSpeedPoints(c);
   return Math.max(.05, points.reduce((sum, p, i) => sum + span * ((points[i + 1]?.at ?? 1) - p.at) / p.speed, 0));
 };
-const vNew = (kind, name, o) => Object.assign({id:V.uid++, kind, name, isClip:true, doc:newDoc(), hist:[], hIdx:0, thumbEl:document.createElement('div'), speed:1, vol:1, fadeIn:0, fadeOut:0, trans:{type:'none', dur:.7}, fit:'contain', zoom:1, px:0, py:0, kb:{on:false, z0:1, z1:1.2, x0:0, y0:0, x1:0, y1:0}, start:0, len:0, tr:0, in:0, out:0, dur:4}, o);
+const vNew = (kind, name, o) => Object.assign({id:V.uid++, kind, name, isClip:true, doc:newDoc(), hist:[], hIdx:0, thumbEl:document.createElement('div'), speed:1, vol:1, fadeIn:0, fadeOut:0, trans:{type:'none', dur:.7}, fit:'contain', zoom:1, px:0, py:0, kb:{on:false, z0:1, z1:1.2, x0:0, y0:0, x1:0, y1:0}, stab:{on:false, amount:100, zoom:1, points:[]}, start:0, len:0, tr:0, in:0, out:0, dur:4}, o);
 function vLayout(){
   let t = 0;
   V.clips.forEach((c, i) => {
@@ -3441,8 +3563,13 @@ function vDrawClip(ctx, c, T, PW, PH, fx, slot){
   const compare = state.compare, p = compare ? effective(NEUTRAL_DOC) : effective(c.doc); useCurves(compare ? NEUTRAL_DOC : c.doc);
   let z = c.zoom || 1, px = c.px || 0, py = c.py || 0;
   if (c.kb && c.kb.on) { const k = ease(clamp((T - c.start) / c.len, 0, 1)); z *= c.kb.z0 + (c.kb.z1 - c.kb.z0) * k; px += c.kb.x0 + (c.kb.x1 - c.kb.x0) * k; py += c.kb.y0 + (c.kb.y1 - c.kb.y0) * k; }
+  const srcTime = c.kind === 'video' ? vClipSourceAtElapsed(c, Math.max(0, T - c.start)) : 0;
+  const rawStab = c.kind === 'video' && c.stab?.on ? stabilizationAt(c, srcTime) : {dx:0, dy:0};
+  const stabAmount = c.kind === 'video' && c.stab?.on ? clamp(c.stab.amount ?? 100, 0, 100) / 100 : 0;
+  const stab = {dx:rawStab.dx * stabAmount, dy:rawStab.dy * stabAmount};
+  if (c.kind === 'video' && c.stab?.on) z *= clamp(c.stab.zoom || 1, 1, 1.25);
   const base = c.fit === 'cover' ? Math.max(PW / cw, PH / ch) : Math.min(PW / cw, PH / ch), s = base * z, fw = cw * s, fh = ch * s;
-  const ox = Math.max(0, (fw - PW) / 2), oy = Math.max(0, (fh - PH) / 2), x0 = PW / 2 - px * ox - fw / 2, y0 = PH / 2 - py * oy - fh / 2;
+  const ox = Math.max(0, (fw - PW) / 2), oy = Math.max(0, (fh - PH) / 2), x0 = PW / 2 - px * ox - fw / 2 + stab.dx * fw, y0 = PH / 2 - py * oy - fh / 2 + stab.dy * fh;
   const ix0 = Math.max(0, x0), iy0 = Math.max(0, y0), ix1 = Math.min(PW, x0 + fw), iy1 = Math.min(PH, y0 + fh); if (ix1 - ix0 < 1 || iy1 - iy0 < 1) return;
   const bases = computeBases(c.entry, c.doc.geo, 384, 'vb' + (slot & 1), false);
   ctx.save(); ctx.globalAlpha = fx.alpha;
@@ -3634,7 +3761,7 @@ function vAddText(preset){
   const t = Object.assign({id:V.uid++, text:'Text', start:V.t, dur:Math.min(3.5, Math.max(1, V.dur - V.t) || 3.5), x:.5, y:.5, size:.08, font:'sans', color:'#ffffff', bold:false, italic:false, anim:'fade', outline:false, shadow:false, bg:false}, P);
   V.texts.push(t); V.sel = {type:'text', id:t.id}; vAfterChange(); setTab('vtext');
 }
-function vAfterChange(){ vLayout(); tlRender(); vRefreshPanels(); requestRender(); }
+function vAfterChange(){ vLayout(); tlRender(); vRefreshPanels(); $('#bExport').disabled = !V.clips.length; requestRender(); }
 function vSetProject(ar){ const d = PROJ[ar]; V.proj.ar = ar; V.proj.w = d[0]; V.proj.h = d[1]; requestRender(); tlRender(); }
 
 /* ─────────── timeline UI ─────────── */
@@ -3725,6 +3852,49 @@ function vAddSpeedPoint(){
   c.speedMap.sort((a, b) => a.at - b.at); vAfterChange(); vSeek(V.t); toast('Speed point added at ' + Math.round(progress * 100) + '% of the source clip');
 }
 function vResetSpeed(){ const c = vSelClip(); if (!c || c.kind !== 'video') return; c.speedMap = null; c.speed = 1; vAfterChange(); vSeek(V.t); toast('Speed curve reset to normal'); }
+async function vAnalyzeStabilization(c){
+  if (!c || c.kind !== 'video') { toast('Stabilization is available for video clips'); return; }
+  if (V.exporting) { toast('Wait for the current export to finish'); return; }
+  const span = c.out - c.in;
+  if (span < .25) { toast('The trimmed clip is too short to analyze'); return; }
+  const savedTime = V.t, savedSourceTime = c.el.currentTime;
+  const width = 96, height = 54, sampleCount = clamp(Math.ceil(span * 5), 2, 900), sampleCanvas = document.createElement('canvas');
+  sampleCanvas.width = width; sampleCanvas.height = height;
+  const sampleContext = sampleCanvas.getContext('2d', {willReadFrequently:true});
+  if (!sampleContext) { toast('Could not create a frame-analysis surface'); return; }
+  const path = []; let previous = null, motionX = 0, motionY = 0;
+  vPause(); busy(true, 'Analyzing camera motion…');
+  try {
+    for (let i = 0; i <= sampleCount; i++) {
+      const time = c.in + span * i / sampleCount;
+      await seekEl(c.el, time); sampleContext.drawImage(c.el, 0, 0, width, height);
+      const rgba = sampleContext.getImageData(0, 0, width, height).data, gray = new Uint8Array(width * height);
+      for (let src = 0, dst = 0; dst < gray.length; src += 4, dst++) gray[dst] = (rgba[src] * 77 + rgba[src + 1] * 150 + rgba[src + 2] * 29) >> 8;
+      if (previous) { const shift = estimateVideoShift(previous, gray, width, height); motionX += shift.x; motionY += shift.y; }
+      path.push({t:time, x:motionX, y:motionY}); previous = gray;
+      if (i % 8 === 0) { busy(true, `Analyzing camera motion… ${Math.round(i / sampleCount * 100)}%`); await tick(); }
+    }
+    const radius = Math.max(1, Math.round(sampleCount / span * .45)), smoothed = path.map((point, i) => {
+      let x = 0, y = 0, n = 0;
+      for (let j = Math.max(0, i - radius); j <= Math.min(path.length - 1, i + radius); j++) { x += path[j].x; y += path[j].y; n++; }
+      return {x:x / n, y:y / n};
+    });
+    const baseX = smoothed[0].x - path[0].x, baseY = smoothed[0].y - path[0].y;
+    const points = path.map((point, i) => ({t:point.t, dx:clamp((smoothed[i].x - point.x - baseX) / width, -.1, .1), dy:clamp((smoothed[i].y - point.y - baseY) / height, -.1, .1)}));
+    const margin = points.reduce((m, p) => Math.max(m, Math.abs(p.dx), Math.abs(p.dy)), 0);
+    c.stab = {on:true, amount:100, zoom:clamp(1 / Math.max(.8, 1 - 2 * margin), 1, 1.25), points};
+    toast('Stabilization analyzed — adjust strength and crop in the clip controls');
+  } catch (e) { toast('Stabilization failed: ' + e.message, 7000); }
+  finally {
+    busy(false); V.t = savedTime;
+    try { await seekEl(c.el, savedSourceTime); } catch (_) {}
+    vRefreshPanels(); await vSeek(savedTime);
+  }
+}
+function vResetStabilization(c){
+  if (!c || c.kind !== 'video') return;
+  c.stab = {on:false, amount:100, zoom:1, points:[]}; vRefreshPanels(); requestRender(); toast('Stabilization reset');
+}
 function vRefreshPanels(){
   const c = vSelObj(), P = $('#tab-vclip'), Tt = $('#tab-vtext'), A = $('#tab-vaudio'); if (!P) return;
   const top5 = `<div class="sec"><div class="top5-h"><h3 style="margin:0">Top 5 video tools</h3><small>most used in popular editors</small></div><div class="top5" style="margin-top:8px">
@@ -3734,7 +3904,9 @@ function vRefreshPanels(){
     const v = c.kind === 'video';
     const speedPoint = v ? c.speedMap?.[vSpeedPointIndex(c, vCurrentSpeedProgress(c))] : null, activeSpeed = speedPoint ? speedPoint.speed : c.speed;
     const speedControls = v ? `${vSl('clip', 'speed', c.speedMap ? 'Section speed' : 'Speed', .25, 4, .05, activeSpeed, mult)}<div class="btns"><button class="btn sm" data-v5="speed-add">＋ Speed point at playhead</button>${c.speedMap ? '<button class="btn sm" data-v5="speed-reset">Reset speed curve</button>' : ''}</div><p class="note">Add points at the playhead, then set each section from 0.25× to 4×. Pitch is preserved where supported.</p>` : '';
-    clipHtml = `<div class="sec"><h3>${escapeHtml(c.name)}</h3>
+    const stab = c.stab || (c.stab = {on:false, amount:100, zoom:1, points:[]});
+    const stabilizationControls = v ? `<div class="sec"><h3>Stabilization & detail</h3><div class="btns"><button class="btn sm${stab.points.length ? '' : ' pri'}" data-v5="stab-analyze">${stab.points.length ? 'Re-analyze shake' : 'Analyze & stabilize'}</button>${stab.points.length ? '<button class="btn sm" data-v5="stab-reset">Reset stabilization</button>' : ''}</div>${stab.points.length ? `${vChk('clip', 'stabOn', stab.on, 'Apply stabilization')}${vSl('clip', 'stabAmount', 'Stabilization strength', 0, 100, 1, stab.amount, pct)}${vSl('clip', 'stabZoom', 'Crop / edge fill', 1, 1.25, .01, stab.zoom, mult)}` : '<p class="note">Analyzes camera movement and smooths the clip. The video is sampled locally; no frames are uploaded.</p>'}${vSl('clip', 'sharpen', 'Sharpen soft footage', 0, 100, 1, c.doc.adj.sharpen, pct)}<p class="note">Sharpening can help mild softness; it cannot restore detail lost to strong focus or motion blur.</p></div>` : '';
+    clipHtml = stabilizationControls + `<div class="sec"><h3>${escapeHtml(c.name)}</h3>
       ${v ? speedControls + vSl('clip', 'in', 'Trim start', 0, +c.srcDur.toFixed(2), .05, +c.in.toFixed(2), sec) + vSl('clip', 'out', 'Trim end', 0, +c.srcDur.toFixed(2), .05, +c.out.toFixed(2), sec) + vSl('clip', 'vol', 'Volume', 0, 2, .01, c.vol, pct) : vSl('clip', 'dur', 'Duration', .5, 20, .1, c.dur, sec)}
       ${vSl('clip', 'fadeIn', 'Fade in', 0, 3, .1, c.fadeIn, sec)}${vSl('clip', 'fadeOut', 'Fade out', 0, 3, .1, c.fadeOut, sec)}</div>
     <div class="sec"><h3>Transition into this clip</h3>${V.clips[0] === c ? '<p class="note">The first clip has no incoming transition.</p>' : vSel('clip', 'transType', c.trans.type, TRANS) + vSl('clip', 'transDur', 'Duration', .2, 2, .05, c.trans.dur, sec)}</div>
@@ -3764,9 +3936,9 @@ function vPanelInput(e, isChange){
   if (t === 'proj') { if (k === 'master') V.master = val; else V.proj[k] = val; requestRender(); return; }
   const type = t, o = type === 'clip' ? V.clips.find(x => V.sel && x.id === V.sel.id) : type === 'text' ? V.texts.find(x => V.sel && x.id === V.sel.id) : type === 'overlay' ? V.overlays.find(x => V.sel && x.id === V.sel.id) : V.audio.find(x => V.sel && x.id === V.sel.id); if (!o) return;
   if (type === 'clip') {
-    if (k === 'transType') o.trans.type = val; else if (k === 'transDur') o.trans.dur = val; else if (k === 'kbOn') { o.kb.on = val; if (val) applyKB(o, o.kb.dir || 'in'); } else if (k === 'kbDir') { o.kb.dir = val; applyKB(o, val); } else if (k === 'speed' && o.speedMap) o.speedMap[vSpeedPointIndex(o, vCurrentSpeedProgress(o))].speed = val; else o[k] = val;
+    if (k === 'transType') o.trans.type = val; else if (k === 'transDur') o.trans.dur = val; else if (k === 'kbOn') { o.kb.on = val; if (val) applyKB(o, o.kb.dir || 'in'); } else if (k === 'kbDir') { o.kb.dir = val; applyKB(o, val); } else if (k === 'speed' && o.speedMap) o.speedMap[vSpeedPointIndex(o, vCurrentSpeedProgress(o))].speed = val; else if (k === 'stabOn') o.stab.on = val; else if (k === 'stabAmount') o.stab.amount = val; else if (k === 'stabZoom') o.stab.zoom = val; else if (k === 'sharpen') o.doc.adj.sharpen = val; else o[k] = val;
     if (k === 'in') o.in = Math.min(o.in, o.out - .1); if (k === 'out') o.out = Math.max(o.out, o.in + .1);
-    vLayout(); tlRender(); if (el.type === 'checkbox' || el.tagName === 'SELECT') vRefreshPanels(); else { const v = el.closest('.sl'); if (v) v.querySelector('.v').textContent = el.dataset.vk === 'speed' ? val + '×' : ['zoom'].includes(k) ? val + '×' : ['vol'].includes(k) ? pct(val) : (['px', 'py'].includes(k) ? val : sec(val)); }
+    vLayout(); tlRender(); if (el.type === 'checkbox' || el.tagName === 'SELECT') vRefreshPanels(); else { const v = el.closest('.sl'); if (v) v.querySelector('.v').textContent = k === 'speed' ? val + '×' : ['zoom', 'stabZoom'].includes(k) ? val + '×' : ['vol', 'stabAmount', 'sharpen'].includes(k) ? pct(val) : (['px', 'py'].includes(k) ? val : sec(val)); }
     if (['speed', 'in', 'out'].includes(k)) vSeek(V.t); else requestRender();
   } else if (type === 'text') { o[k] = val; tlRender(); if (el.type === 'range') { const v = el.closest('.sl'); if (v) v.querySelector('.v').textContent = ['x', 'y'].includes(k) ? pct(val) : k === 'size' ? (val * 100).toFixed(0) : sec(val); } requestRender(); }
   else if (type === 'overlay') { o[k] = val; vLayout(); tlRender(); requestRender(); if (el.type === 'range') { const v = el.closest('.sl'); if (v) v.querySelector('.v').textContent = ['x', 'y', 'w', 'opacity'].includes(k) ? pct(val) : k === 'rotation' ? val + '°' : sec(val); } }
@@ -3778,8 +3950,15 @@ function applyKB(c, dir){
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-v5]'); if (!b) return; const a = b.dataset.v5;
-  if (a === 'split') vSplit(); else if (a === 'filters') setTab('looks'); else if (a === 'text') vAddText('title'); else if (a === 'music') vPickMusic(); else if (a === 'speed-add') vAddSpeedPoint(); else if (a === 'speed-reset') vResetSpeed();
-  else if (a === 'speed') { const c = vSelClip(); if (!c) return; setTab('vclip'); if (c.kind === 'video') { c.speed = c.speed === 1 ? 2 : 1; vAfterChange(); vSeek(V.t); toast('Speed ' + c.speed + '× — fine-tune with the Speed slider'); } }
+  if (a === 'split') vSplit(); else if (a === 'filters') setTab('looks'); else if (a === 'text') vAddText('title'); else if (a === 'music') vPickMusic(); else if (a === 'speed-add') vAddSpeedPoint(); else if (a === 'speed-reset') vResetSpeed(); else if (a === 'stab-analyze') vAnalyzeStabilization(vSelClip()); else if (a === 'stab-reset') vResetStabilization(vSelClip());
+  else if (a === 'speed') {
+    const c = vSelClip(); if (!c) return; setTab('vclip');
+    if (c.kind !== 'video') { toast('Speed applies to video clips'); return; }
+    let speed;
+    if (c.speedMap) { const point = c.speedMap[vSpeedPointIndex(c, vCurrentSpeedProgress(c))]; point.speed = point.speed <= 1 ? 2 : 1; speed = point.speed; }
+    else { c.speed = c.speed === 1 ? 2 : 1; speed = c.speed; }
+    vAfterChange(); vSeek(V.t); toast('Speed ' + speed + '× for this section — fine-tune with the Speed slider');
+  }
   else if (a.startsWith('t-')) vAddText(a.slice(2));
   else if (a === 'gradeall') { const c = vSelClip(); if (!c) return; const src = stripGeo(c.doc); V.clips.forEach(o => { if (o !== c) pasteInto(o, src); }); toast('Grade copied to all clips'); requestRender(); }
   else if (a === 'slideshow') vSlideshowFromPhotos();
@@ -3816,31 +3995,89 @@ const xSel = k => $(`select[data-vt="x"][data-vk="${k}"]`);
 function vXNote(){ const n = $('#vXNote'); if (!n) return; const r = +(xSel('res')?.value || 1080), [w, h] = V.proj.w >= V.proj.h ? [Math.round(r * V.proj.w / V.proj.h / 2) * 2, r] : [r, Math.round(r * V.proj.h / V.proj.w / 2) * 2]; n.innerHTML = `Output: <b>${w} × ${h}</b> · ${V.proj.ar} · ${fmtT(V.dur)}`; }
 scrollEl.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.vt === 'x') vXNote(); });
 async function vExport(){
-  if (!V.clips.length) { toast('Add some clips first'); return; } vPause(); audioInit(); await AC.ctx.resume();
+  if (!V.clips.length) { toast('Add some clips first'); return; }
+  if (V.exporting) { toast('A video export is already running'); return; }
+  if (typeof MediaRecorder === 'undefined') { toast('This browser cannot record video — use current Chrome or Edge'); return; }
+  if (!Number.isFinite(V.dur) || V.dur <= 0) { toast('The timeline has no exportable duration'); return; }
   const r = +xSel('res').value, fps = +xSel('fps').value, q = xSel('q').value, land = V.proj.w >= V.proj.h;
   const XW = land ? Math.round(r * V.proj.w / V.proj.h / 2) * 2 : r, XH = land ? r : Math.round(r * V.proj.h / V.proj.w / 2) * 2, bpp = {std:.09, high:.15, max:.24}[q], bitrate = Math.round(XW * XH * fps * bpp);
-  const mimes = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'], mime = mimes.find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
-  if (!mime) { toast('This browser cannot record video — use Chrome or Edge'); return; }
-  const xcv = document.createElement('canvas'); xcv.width = XW; xcv.height = XH; const xc = xcv.getContext('2d');
-  const stream = xcv.captureStream(fps); AC.dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
-  const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:bitrate, audioBitsPerSecond:192000}), chunks = []; rec.ondataavailable = e => e.data.size && chunks.push(e.data);
-  const done = new Promise(res => { rec.onstop = res; });
-  const box = $('#xo'); box.classList.add('on'); xCancel = false; V.exporting = true; AC.master.gain.value = 0; $('#xoT').textContent = 'Exporting video'; $('#xoP').textContent = `${XW}×${XH} @ ${fps} fps — recording in real time…`; $('#xoBar').style.width = '0';
-  await vSeek(0); V.t = 0; rec.start(250); const wall0 = performance.now();
-  await new Promise(res => {
-    const step = () => { const T = (performance.now() - wall0) / 1000; if (xCancel || T >= V.dur) return res(); V.t = T; vSyncMedia(T, true); vRenderProject(xc, XW, XH, T); $('#xoBar').style.width = (T / V.dur * 100) + '%'; $('#xoP').textContent = `${XW}×${XH} @ ${fps} fps — ${fmtT(T)} / ${fmtT(V.dur)}`; requestAnimationFrame(step); }; step();
-  });
-  vRenderProject(xc, XW, XH, Math.max(0, V.dur - .01)); await new Promise(r => setTimeout(r, 300)); rec.stop(); await done; vPauseAll();
-  V.exporting = false; AC.master.gain.value = 1; box.classList.remove('on'); dropPool('vq'); dropPool('vp');
-  if (xCancel) { toast('Export cancelled'); } else { const blob = new Blob(chunks, {type:mime.split(';')[0]}), ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm'; saveBlob(blob, 'ProPhoto_video_' + XH + 'p.' + ext); toast('Video exported (' + (blob.size / 1e6).toFixed(1) + ' MB ' + ext.toUpperCase() + ')'); }
-  V.t = 0; vSeek(0);
+  const mimes = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  const mime = mimes.find(m => MediaRecorder.isTypeSupported(m));
+  if (!mime) { toast('No supported MP4 or WebM video encoder was found in this browser'); return; }
+  vPause();
+  const originalTime = V.t, originalGain = AC.master ? AC.master.gain.value : 1;
+  let xcv, stream, recorder, recorderDone, box = $('#xo'), error = null;
+  const chunks = [];
+  try {
+    if (window.AudioContext || window.webkitAudioContext) { audioInit(); await AC.ctx.resume(); }
+    xcv = document.createElement('canvas'); xcv.width = XW; xcv.height = XH;
+    const xc = xcv.getContext('2d');
+    if (!xc || !xc.drawImage) throw new Error('Could not create the export canvas');
+    stream = xcv.captureStream(fps);
+    AC.dest?.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+    recorder = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:bitrate, audioBitsPerSecond:192000});
+    recorder.addEventListener('dataavailable', e => { if (e.data.size) chunks.push(e.data); });
+    recorderDone = new Promise((resolve, reject) => {
+      recorder.addEventListener('stop', resolve, {once:true});
+      recorder.addEventListener('error', e => reject(e.error || new Error('The browser recorder failed')), {once:true});
+    });
+    recorderDone.catch(() => {});
+    box.classList.add('on'); xCancel = false; V.exporting = true;
+    if (AC.master) AC.master.gain.value = 0;
+    $('#xoT').textContent = 'Exporting video';
+    $('#xoP').textContent = `${XW}×${XH} @ ${fps} fps — recording in real time…`;
+    $('#xoBar').style.width = '0';
+    await vSeek(0); V.t = 0; recorder.start(250);
+    const wall0 = performance.now();
+    await new Promise((resolve, reject) => {
+      const step = () => {
+        if (xCancel) { resolve(); return; }
+        if (error) { reject(error); return; }
+        try {
+          const T = Math.min((performance.now() - wall0) / 1000, V.dur);
+          V.t = T; vSyncMedia(T, true); vRenderProject(xc, XW, XH, T);
+          $('#xoBar').style.width = (T / V.dur * 100) + '%';
+          $('#xoP').textContent = `${XW}×${XH} @ ${fps} fps — ${fmtT(T)} / ${fmtT(V.dur)}`;
+          if (T >= V.dur) resolve(); else setTimeout(step, Math.max(10, 1000 / fps));
+        } catch (e) { reject(e); }
+      };
+      recorder.addEventListener('error', e => { error = e.error || new Error('The browser recorder failed'); }, {once:true});
+      step();
+    });
+    if (!xCancel) {
+      vRenderProject(xc, XW, XH, Math.max(0, V.dur - 1 / fps));
+      $('#xoBar').style.width = '100%';
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    if (recorder.state !== 'inactive') recorder.stop();
+    await recorderDone;
+    if (error) throw error;
+    if (xCancel) toast('Export cancelled');
+    else {
+      const blob = new Blob(chunks, {type:mime.split(';')[0]});
+      if (!blob.size) throw new Error('The browser produced an empty video file');
+      const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+      saveBlob(blob, 'ProPhoto_video_' + r + 'p.' + ext);
+      toast('Video exported (' + (blob.size / 1e6).toFixed(1) + ' MB ' + ext.toUpperCase() + ')');
+    }
+  } catch (e) {
+    if (recorder && recorder.state !== 'inactive') { try { recorder.stop(); } catch (_) {} }
+    if (recorderDone) { try { await recorderDone; } catch (_) {} }
+    toast('Video export failed: ' + e.message, 7000);
+  } finally {
+    V.exporting = false; vPauseAll();
+    if (AC.master) AC.master.gain.value = originalGain;
+    stream?.getVideoTracks().forEach(t => t.stop());
+    box.classList.remove('on'); dropPool('vq'); dropPool('vp');
+    V.t = clamp(originalTime, 0, V.dur); await vSeek(V.t);
+  }
 }
 
 /* ─────────── mode switching & init ─────────── */
 function setMode(m){
   if (m === state.mode) return; if (state.mode === 'video') vPause(); state.mode = m; $('#app').classList.toggle('vmode', m === 'video'); $('#mPhoto').classList.toggle('on', m === 'photo'); $('#mVideo').classList.toggle('on', m === 'video');
-  if (m === 'video') { if (['crop', 'export', 'mask'].includes(state.tab)) setTab('vclip'); else if (state.tab === 'looks' || state.tab === 'basic') { /* keep */ } $('#drop').style.display = 'none'; $('#gl').style.display = 'none'; vcv.style.display = 'block'; state.looksKey = ''; state.bases = null; vLayout(); tlRender(); vRefreshPanels(); syncUI(); vSeek(V.t); }
-  else { vcv.style.display = 'none'; state.bases = null; lutKey = ''; if (['vclip', 'vtext', 'vaudio', 'vexport'].includes(state.tab)) setTab('looks'); $('#vdrop').style.display = 'none'; if (state.photos.length) { $('#gl').style.display = 'block'; $('#drop').style.display = 'none'; } else showEmpty(); syncUI(); requestRender(); }
+  if (m === 'video') { $('#bExport').disabled = !V.clips.length; if (['crop', 'export', 'mask'].includes(state.tab)) setTab('vclip'); else if (state.tab === 'looks' || state.tab === 'basic') { /* keep */ } $('#drop').style.display = 'none'; $('#gl').style.display = 'none'; vcv.style.display = 'block'; state.looksKey = ''; state.bases = null; vLayout(); tlRender(); vRefreshPanels(); syncUI(); vSeek(V.t); }
+  else { $('#bExport').disabled = !state.photos.length; vcv.style.display = 'none'; state.bases = null; lutKey = ''; if (['vclip', 'vtext', 'vaudio', 'vexport'].includes(state.tab)) setTab('looks'); $('#vdrop').style.display = 'none'; if (state.photos.length) { $('#gl').style.display = 'block'; $('#drop').style.display = 'none'; } else showEmpty(); syncUI(); requestRender(); }
 }
 function vInit(){
   tlBuild();
